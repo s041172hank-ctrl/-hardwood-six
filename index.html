@@ -774,7 +774,7 @@ seasonInjuryCheck=function(){
             <div class="center" style="margin-top:10px"><div class="label">面試</div><b style="font-size:24px;color:var(--blue)">\${c.interview}</b></div>
             <div class="center" style="margin-top:12px"><div class="label">COMBINE 總評</div><b style="font-size:36px;color:var(--gold)">\${c.total}</b><div class="small">選秀評分修正：\${c.bonus>=0?"+":""}\${c.bonus}</div></div>
           </div>
-          <button class="btn gold" onclick="_hlFinishNBADirectDraft()">進入 NBA 選秀 🏀</button>
+          <button class="btn gold" onclick="_hlFinishNBACombineFlow()">進入 NBA 選秀 🏀</button>
           \`:\`
           <div class="panel center">
             <div style="font-size:42px">📋</div>
@@ -787,6 +787,118 @@ seasonInjuryCheck=function(){
       function _hlAddUndraftedNext(nextOffers,league,tag,years,salary){
         nextOffers.push({type:"draft",league,team:randTeam(league),pick:0,years,salary,tag:"❌ NBA 落選｜"+tag});
       }
+      function _hlCareerNBADraftEval(){
+        const ov=overall();
+        const ps=prospectScore();
+        const fit=nbaBestTeamForPlayer();
+        const combineBonus=G._combine?G._combine.bonus:0;
+        const rarityBonus={"一般":0,"A":1,"S":2,"SS":3,"傳奇":4}[G.talentRarity||"一般"]||0;
+        const fitBonus=clamp(Math.round((fit.fit-66)/8),-2,4);
+        const score=Math.round(ps+combineBonus+rarityBonus+fitBonus);
+
+        let pick=null;
+        if(ov>=82 && score>=101){
+          pick=rint(1,14);
+        }else if(ov>=79 && score>=96){
+          pick=rint(15,30);
+        }else if(ov>=76 && score>=91){
+          pick=rint(31,45);
+        }else if(ov>=74 && score>=87){
+          const p=clamp(.24+(score-87)*.11+(fit.fit>=80?.08:0),.24,.76);
+          if(chance(p))pick=rint(46,58);
+        }
+
+        if(pick===null){
+          return {offer:null,score,fit,ov,ps};
+        }
+
+        const rolePromise=pick<=8?"球隊核心培養":pick<=20?"先發競爭":pick<=35?"輪替培養":"板凳競爭";
+        const offer={
+          type:"draft",league:"NBA",team:fit.team,pick,
+          years:pick<=30?4:2,
+          salary:draftSalary("NBA",pick,ov),
+          rolePromise,
+          option:pick<=30?"第 4 年球隊選項":"第 2 年球隊選項",
+          guarantee:pick<=30?"前 2 年保障":"部分保障",
+          tag:"🏀 NBA 第 "+pick+" 順位｜需求："+fit.needs.join("／")+"｜契合 "+fit.fit+"｜選秀評分 "+score
+        };
+        return {offer,score,fit,ov,ps};
+      }
+
+      function _hlFinishNBACombineFlow(){
+        const ctx=G._combineContext||"direct";
+        if(ctx==="career"){
+          G._combineContext=null;
+          G.phase="draftDeclare";
+          render();
+          return;
+        }
+        if(ctx==="retro"){
+          return _hlFinishNBARetroDraft();
+        }
+        return _hlFinishNBADirectDraft();
+      }
+
+      function _hlFinishNBARetroDraft(){
+        const result=_hlCareerNBADraftEval();
+        let offers=(G._savedDraftOffers||G._offers||[]).filter(o=>o.league!=="NBA");
+        G._savedDraftOffers=null;
+        if(result.offer){
+          offers.unshift(result.offer);
+          G._nbaDraftMiss=null;
+        }else{
+          G._nbaDraftMiss={score:result.score,fit:result.fit};
+        }
+        const rank=LEAGUE_RANK;
+        offers.sort((a,b)=>(rank[b.league]||0)-(rank[a.league]||0));
+        G._offers=offers;
+        G._draftMode=true;
+        G._combineContext=null;
+        G.phase="draftResults";
+        render();
+      }
+
+      function _hlAttachNBADraftPanel(){
+        if(!G||G.phase!=="draftResults"||!G._draftMode)return;
+        const stage=document.querySelector("#stage");
+        if(!stage||document.getElementById("hl-nba-draft-panel"))return;
+        const isCollegePath=(G.league==="NCAA D1"||G.league==="NCAA D2"||G.league==="UBA");
+        if(!isCollegePath)return;
+        const alreadyNBA=(G._offers||[]).some(o=>o.league==="NBA");
+        if(alreadyNBA)return;
+
+        const box=document.createElement("div");
+        box.id="hl-nba-draft-panel";
+        box.className="panel";
+        box.style.borderColor=G._nbaDraftMiss?"var(--red)":"var(--gold)";
+
+        if(G._nbaDraftMiss){
+          const m=G._nbaDraftMiss;
+          box.innerHTML='<div class="label" style="color:var(--red)">NBA DRAFT RESULT</div>'+
+            '<h2 style="font-size:20px;margin:7px 0">❌ NBA 選秀落選</h2>'+
+            '<p class="muted">你有正式參加 NBA 選秀，但 58 個順位都沒有被選中。</p>'+
+            '<div class="small">選秀評分：<b>'+m.score+'</b>｜最佳契合球隊：<b>'+m.fit.team+'</b>｜球隊需求：'+m.fit.needs.join('／')+'｜契合度 '+m.fit.fit+'</div>'+
+            '<div class="small" style="margin-top:6px;color:var(--dim)">下面的發展聯盟、台灣或海外邀請仍可自由選擇。</div>';
+        }else{
+          box.innerHTML='<div class="label" style="color:var(--gold)">NBA DRAFT</div>'+
+            '<h2 style="font-size:20px;margin:7px 0">🇺🇸 你還沒進行 NBA Combine</h2>'+
+            '<p class="muted">這個舊存檔是用原版門檻產生選秀結果，所以 NBA 評估被跳過。現在可以補做 Combine，之後會依 OVR、球場表現、體測、潛力與球隊需求重新判定 NBA 首輪、次輪或落選。</p>'+
+            '<button id="hl-nba-retry" class="btn gold">參加 NBA Combine 🏀</button>';
+          const b=box.querySelector("#hl-nba-retry");
+          b.onclick=()=>{
+            G._savedDraftOffers=[...(G._offers||[])];
+            G._combineContext="retro";
+            G._combine=null;
+            G.phase="nbaCombine";
+            render();
+          };
+        }
+        stage.prepend(box);
+      }
+
+      setTimeout(_hlAttachNBADraftPanel,120);
+      new MutationObserver(()=>setTimeout(_hlAttachNBADraftPanel,0)).observe(document.documentElement,{childList:true,subtree:true});
+
       function _hlFinishNBADirectDraft(){
         const fit=nbaBestTeamForPlayer();
         const combineBonus=G._combine?G._combine.bonus:0;
@@ -829,6 +941,74 @@ seasonInjuryCheck=function(){
       function render(){
         if(G&&G.phase==="nbaCombine")return renderNBACombine();
         if(G&&G.phase==="careerHub")return renderCareerHub();`
+    );
+
+    // 11-3B. 正常高中／NCAA 生涯也使用 Combine + NBA 球隊需求選秀
+    source=source.replace(
+      /function signDraft\(offer\)\{/,
+      `declareForDraft=function(){
+        G.proStarted=true; G.stage="pro"; G.rookieDone=false;
+        G._draftPick={"P+":true,"TPBL":true,"SBL":true};
+        G._combine=null;
+        G._combineContext="career";
+        G._nbaDraftMiss=null;
+        G.phase="nbaCombine";
+        render();
+      };
+
+      confirmDraft=function(){
+        const ov=overall(), ps=prospectScore();
+        const offers=[];
+
+        let picked=Object.keys(G._draftPick||{}).filter(lg=>G._draftPick[lg]&&lg!=="CBL"&&lg!=="KRBL");
+        if(!picked.length && !(G._draftPick&&G._draftPick["CBL"]) && !(G._draftPick&&G._draftPick["KRBL"])) picked=["SBL"];
+
+        picked.slice(0,3).forEach(lg=>{
+          const dp=draftPick(lg,ps);
+          if(dp==null)return;
+          offers.push({type:"draft",league:lg,team:randTeam(lg),pick:dp,years:rint(2,3),salary:draftSalary(lg,dp,ov),tag:pickLabel(dp)});
+        });
+
+        if(G._draftPick&&G._draftPick["CBL"]){
+          const cp=draftPick("CBL",ps);
+          if(cp!=null)offers.push({type:"draft",league:"CBL",team:randTeam("CBL"),pick:cp,years:rint(2,3),salary:draftSalary("CBL",cp,ov),tag:lname("CBL")+" 第 "+cp+" 順位"});
+        }
+        if(G._draftPick&&G._draftPick["KRBL"]){
+          const kp=draftPick("KRBL",ps);
+          if(kp!=null)offers.push({type:"draft",league:"KRBL",team:randTeam("KRBL"),pick:kp,years:rint(2,3),salary:draftSalary("KRBL",kp,ov),tag:lname("KRBL")+" 第 "+kp+" 順位"});
+        }
+
+        const nba=_hlCareerNBADraftEval();
+        if(nba.offer){
+          offers.push(nba.offer);
+          G._nbaDraftMiss=null;
+        }else{
+          G._nbaDraftMiss={score:nba.score,fit:nba.fit};
+        }
+
+        if(ps>=88){
+          offers.push({type:"draft",league:"日職 B.League",team:randTeam("日職 B.League"),pick:0,years:rint(2,3),salary:makeContract("日職 B.League","",1,ov).salary,tag:"🇯🇵 海外報價"});
+        }
+        if(ps>=84 && !offers.some(o=>o.league==="發展聯盟")){
+          const gp=Math.round(clamp(42-(ps-84)*1.5+rnd(-6,6),4,80));
+          offers.push({type:"draft",league:"發展聯盟",team:randTeam("發展聯盟"),pick:gp,years:1,salary:draftSalary("發展聯盟",gp,ov),tag:nba.offer?"🇺🇸 發展聯盟備選":"❌ NBA 落選｜發展聯盟邀請"});
+        }
+
+        // 不再因所有選秀都落選就直接退休；至少給測試合約讓玩家自己選下一站。
+        if(offers.length===0){
+          offers.push({type:"draft",league:"SBL",team:randTeam("SBL"),pick:0,years:1,salary:ROOKIE_PAY["SBL"][0],tag:"測試合約｜重新證明自己"});
+          offers.push({type:"draft",league:"P+",team:randTeam("P+"),pick:0,years:1,salary:ROOKIE_PAY["P+"][0],tag:"訓練營邀請"});
+        }
+
+        const rank=LEAGUE_RANK;
+        offers.sort((a,b)=>(rank[b.league]||0)-(rank[a.league]||0));
+        G._offers=offers;
+        G._draftMode=true;
+        G.phase="draftResults";
+        render();
+      };
+
+      function signDraft(offer){`
     );
 
     // 11-4. 球隊角色、上場時間、位置競爭
