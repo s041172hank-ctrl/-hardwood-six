@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hardwood Life · Always Six</title>
+<style>
+html,body{
+  margin:0;
+  min-height:100%;
+  background:#0b1220;
+  color:#f4f2ec;
+  font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;
+}
+#loading{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  text-align:center;
+  box-sizing:border-box;
+  line-height:1.7;
+}
+</style>
+</head>
+<body>
+<div id="loading">正在載入 Hardwood Life「骰子固定 6」版本…</div>
+
+<script>
+(async () => {
+  const SOURCE =
+    'https://raw.githubusercontent.com/a3283249-droid/hardwood-life/main/index.html';
+
+  try {
+    const res = await fetch(SOURCE, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    let source = await res.text();
+
+    // 將遊戲中 1～6 的骰子判定固定為 6。
+    source = source.replace(/rint\s*\(\s*1\s*,\s*6\s*\)/g, '6');
+
+    // 若原頁面有相對路徑，仍指向原網站資源。
+    if (!/<base[\s>]/i.test(source)) {
+      source = source.replace(
+        /<head([^>]*)>/i,
+        '<head$1><base href="https://a3283249-droid.github.io/hardwood-life/">'
+      );
+    }
+
+    document.open();
+    document.write(source);
+    document.close();
+  } catch (err) {
+    document.getElementById('loading').innerHTML =
+      '載入失敗：' + String(err.message) +
+      '<br><br>請確認網路連線後重新整理。';
+  }
+})();
+</script>
+</body>
+</html>
