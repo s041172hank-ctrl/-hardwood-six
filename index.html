@@ -2,49 +2,132 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Hardwood Life · Talent Rarity + Always Six</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Hardwood Life · 天才選擇版</title>
 <style>
-html,body{
-  margin:0;
-  min-height:100%;
-  background:#0b1220;
-  color:#f4f2ec;
-  font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif
-}
-#loading{
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:24px;
-  text-align:center;
-  box-sizing:border-box;
-  line-height:1.7
-}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:#0b1220;color:#f4f2ec;font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif}
+body{min-height:100vh;background:radial-gradient(900px 500px at 50% -10%,#1c2f51 0%,transparent 60%),#0b1220}
+#talent-screen{max-width:520px;margin:0 auto;padding:22px 14px 40px}
+.hero{text-align:center;padding:12px 8px 18px}
+.hero h1{font-size:28px;margin:0 0 7px}
+.hero p{margin:0;color:#9db0cc;font-size:13px;line-height:1.55}
+.legend{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:11px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.card{border:1px solid #2a3a57;background:#131e33;border-radius:14px;padding:11px 9px;color:#f4f2ec;text-align:left;min-height:92px}
+.card .rarity{font-size:10px;font-weight:900;margin-bottom:3px}
+.card .name{font-size:14px;font-weight:900}
+.card .desc{font-size:10.5px;line-height:1.4;color:#9db0cc;margin-top:5px}
+.card.on{background:#1b2842;transform:translateY(-1px)}
+#selected{margin:12px 0;background:#101a2d;border:1px solid #2a3a57;border-radius:13px;padding:12px;font-size:12px;line-height:1.6;color:#9db0cc}
+#selected b{font-size:15px}
+#go{width:100%;border:0;border-radius:13px;background:#ff6a2c;color:#1c0d04;font-size:16px;font-weight:900;padding:14px}
+#go:disabled{opacity:.5}
+#loading{display:none;min-height:100vh;align-items:center;justify-content:center;text-align:center;padding:24px;line-height:1.7}
 </style>
 </head>
 <body>
-<div id="loading">正在載入 Hardwood Life「天才稀有度＋骰子固定 6」版本…</div>
+
+<div id="talent-screen">
+  <div class="hero">
+    <h1>🌟 選擇球員天賦</h1>
+    <p>先選一種天才類型，再開始 Hardwood Life。<br>骰子仍然固定為 6。</p>
+    <div class="legend">
+      <span style="color:#9DB0CC">一般</span>
+      <span style="color:#4DA3FF">A</span>
+      <span style="color:#A66CFF">S</span>
+      <span style="color:#FF6A2C">SS</span>
+      <span style="color:#F2B84B">傳奇</span>
+    </div>
+  </div>
+
+  <div id="cards" class="grid"></div>
+  <div id="selected">尚未選擇</div>
+  <button id="go" disabled>選好後進入遊戲 🏀</button>
+</div>
+
+<div id="loading">正在載入遊戲…</div>
 
 <script>
-(async()=>{
-  const SOURCE='https://raw.githubusercontent.com/a3283249-droid/hardwood-life/main/index.html';
+const SOURCE='https://raw.githubusercontent.com/a3283249-droid/hardwood-life/main/index.html';
+
+const TALENTS=[
+  {id:'normal',rarity:'一般',name:'⚪ 一般選手',color:'#9DB0CC',
+   desc:'原版隨機潛力與成長',detail:'原版能力與隨機潛力，不額外加成。'},
+  {id:'scorer',rarity:'A',name:'🔥 得分機器',color:'#4DA3FF',
+   desc:'得分特化',detail:'潛力 91｜得分 +11｜三分 +5｜每季得分 +1｜訓練點 +1'},
+  {id:'sniper',rarity:'A',name:'🎯 神射手',color:'#4DA3FF',
+   desc:'外線特化',detail:'潛力 91｜三分 +13｜得分 +5｜每季三分 +1｜訓練點 +1'},
+  {id:'rebounder',rarity:'A',name:'🧲 籃板怪獸',color:'#4DA3FF',
+   desc:'禁區籃板特化',detail:'潛力 91｜籃板 +14｜防守 +6｜每季籃板 +1｜訓練點 +1'},
+  {id:'playmaker',rarity:'S',name:'🧠 球場魔術師',color:'#A66CFF',
+   desc:'組織與球商特化',detail:'潛力 94｜組織 +12｜球商 +9｜每季組織、球商 +1｜訓練點 +2'},
+  {id:'lockdown',rarity:'S',name:'🛡️ 防守怪物',color:'#A66CFF',
+   desc:'鎖防特化',detail:'潛力 94｜防守 +13｜體能 +6｜每季防守 +1｜訓練點 +2'},
+  {id:'athlete',rarity:'SS',name:'🚀 運動怪物',color:'#FF6A2C',
+   desc:'爆發力與體能特化',detail:'潛力 96｜體能 +14｜防守/籃板 +4｜每季體能 +1｜訓練點 +3'},
+  {id:'pointgod',rarity:'SS',name:'👑 控衛之神',color:'#FF6A2C',
+   desc:'控場與外線特化',detail:'潛力 96｜組織 +11｜球商 +9｜三分 +7｜每季組織、三分 +1｜訓練點 +3'},
+  {id:'twoway',rarity:'SS',name:'⚔️ 攻防一體',color:'#FF6A2C',
+   desc:'得分與防守兼備',detail:'潛力 96｜得分 +7｜防守 +9｜體能 +6｜每季得分、防守 +1｜訓練點 +3'},
+  {id:'allround',rarity:'傳奇',name:'🃏 全能天才',color:'#F2B84B',
+   desc:'全面型怪物',detail:'潛力 98｜全部能力 +7｜每季球商、體能 +1｜訓練點 +4'},
+  {id:'chosen',rarity:'傳奇',name:'🌟 天選之子',color:'#F2B84B',
+   desc:'最頂級全能天賦',detail:'潛力 99｜全部能力 +8｜每季得分、組織、防守、體能 +1｜訓練點 +4'}
+];
+
+let selected=null;
+const cards=document.getElementById('cards');
+const selectedBox=document.getElementById('selected');
+const go=document.getElementById('go');
+
+for(const t of TALENTS){
+  const b=document.createElement('button');
+  b.className='card';
+  b.type='button';
+  b.dataset.id=t.id;
+  b.innerHTML=
+    '<div class="rarity" style="color:'+t.color+'">'+t.rarity+'</div>'+
+    '<div class="name">'+t.name+'</div>'+
+    '<div class="desc">'+t.desc+'</div>';
+
+  b.onclick=()=>{
+    selected=t;
+    document.querySelectorAll('.card').forEach(x=>{
+      x.classList.toggle('on',x.dataset.id===t.id);
+      const tx=TALENTS.find(y=>y.id===x.dataset.id);
+      x.style.borderColor=x.dataset.id===t.id?tx.color:'#2a3a57';
+      x.style.boxShadow=x.dataset.id===t.id?'0 0 14px '+tx.color+'55':'none';
+    });
+    selectedBox.innerHTML=
+      '<b style="color:'+t.color+'">['+t.rarity+'] '+t.name+'</b><br>'+t.detail;
+    go.disabled=false;
+    go.textContent='使用 '+t.name+' 開始遊戲 🏀';
+  };
+  cards.appendChild(b);
+}
+
+function escJs(s){
+  return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+go.onclick=async()=>{
+  if(!selected)return;
+
+  document.getElementById('talent-screen').style.display='none';
+  const loading=document.getElementById('loading');
+  loading.style.display='flex';
+  loading.textContent='正在載入 '+selected.name+'…';
 
   try{
     const res=await fetch(SOURCE,{cache:'no-store'});
-    if(!res.ok) throw new Error('HTTP '+res.status);
-
+    if(!res.ok)throw new Error('HTTP '+res.status);
     let source=await res.text();
 
-    /* =========================================================
-       1. 骰子永遠為 6
-       ========================================================= */
+    // 1) 所有 1~6 事件骰固定為 6
     source=source.replace(/rint\s*\(\s*1\s*,\s*6\s*\)/g,'6');
 
-    /* =========================================================
-       2. 建立角色時依天才類型追加起始能力
-       ========================================================= */
+    // 2) 起始能力加成
     source=source.replace(
       /ATTR_KEYS\.forEach\(k=>attr\[k\]=clamp\(Math\.round\(t\[k\]\*\.94\+rnd\(-5,5\)\),18,58\)\);/,
       `ATTR_KEYS.forEach(k=>attr[k]=clamp(Math.round(t[k]*.94+rnd(-5,5)),18,58));
@@ -63,292 +146,67 @@ html,body{
           chosen:{shooting:8,three:8,pass:8,defense:8,rebound:8,athletic:8,iq:8}
         };
         const b=buffs[tt];
-        if(b){
-          for(const k in b){
-            if(k in attr) attr[k]=clamp(attr[k]+b[k],18,82);
-          }
-        }
+        if(b) for(const k in b) if(k in attr) attr[k]=clamp(attr[k]+b[k],18,82);
       }`
     );
 
-    /* =========================================================
-       3. 潛力依稀有度固定
-       ========================================================= */
+    // 3) 潛力
     source=source.replace(
       /potential:\(function\(\)\{let p=rint\(68,80\);if\(chance\(\.12\)\)p\+=rint\(6,15\);return clamp\(p,68,99\);\}\)\(\)/,
       `potential:(function(){
         const tt=window.__TALENT_TYPE__||"normal";
-        const pm={
-          scorer:91,
-          sniper:91,
-          rebounder:91,
-          playmaker:94,
-          lockdown:94,
-          athlete:96,
-          pointgod:96,
-          twoway:96,
-          allround:98,
-          chosen:99
-        };
-        if(pm[tt]) return pm[tt];
-        let p=rint(68,80);
-        if(chance(.12))p+=rint(6,15);
-        return clamp(p,68,99);
+        const pm={scorer:91,sniper:91,rebounder:91,playmaker:94,lockdown:94,athlete:96,pointgod:96,twoway:96,allround:98,chosen:99};
+        if(pm[tt])return pm[tt];
+        let p=rint(68,80);if(chance(.12))p+=rint(6,15);return clamp(p,68,99);
       })()`
     );
 
-    /* =========================================================
-       4. 把天賦資料存進角色
-       ========================================================= */
+    // 4) 將天賦記錄在角色存檔內
     source=source.replace(
       /name,pos,home,jersey:jn,/,
       `name,pos,home,jersey:jn,
       talentType:(window.__TALENT_TYPE__||"normal"),
-      talentRarity:(window.__TALENT_RARITY__||"一般"),`
+      talentRarity:(window.__TALENT_RARITY__||"一般"),
+      talentName:(window.__TALENT_NAME__||"一般選手"),`
     );
 
-    /* =========================================================
-       5. 稀有度影響每季訓練點
-       A +1 / S +2 / SS +3 / 傳奇 +4
-       ========================================================= */
+    // 5) 稀有度每季訓練點
     source=source.replace(
       /return base \+ rint\(0,2\);/,
-      `const rarityBonus={
-        "一般":0,
-        "A":1,
-        "S":2,
-        "SS":3,
-        "傳奇":4
-      }[G.talentRarity||"一般"]||0;
+      `const rarityBonus={"一般":0,"A":1,"S":2,"SS":3,"傳奇":4}[G.talentRarity||"一般"]||0;
       return base + rint(0,2) + rarityBonus;`
     );
 
-    /* =========================================================
-       6. 額外專屬成長效果
-       在每次季前加點開始時給對應能力微量成長
-       ========================================================= */
+    // 6) 每季專屬成長
     source=source.replace(
       /function beginAllocate\(\)\{\s*let sp=computeSP\(\);/,
       `function beginAllocate(){
-      if(G && G.attr){
-        const tt=G.talentType||"normal";
+      if(G&&G.attr){
         const growth={
-          scorer:{shooting:1},
-          sniper:{three:1},
-          rebounder:{rebound:1},
-          playmaker:{pass:1,iq:1},
-          lockdown:{defense:1},
-          athlete:{athletic:1},
-          pointgod:{pass:1,three:1},
-          twoway:{shooting:1,defense:1},
-          allround:{iq:1,athletic:1},
-          chosen:{shooting:1,pass:1,defense:1,athletic:1}
-        }[tt];
-
-        if(growth){
-          for(const k in growth){
-            if(k in G.attr){
-              G.attr[k]=Math.min(99,G.attr[k]+growth[k]);
-            }
-          }
-        }
+          scorer:{shooting:1},sniper:{three:1},rebounder:{rebound:1},
+          playmaker:{pass:1,iq:1},lockdown:{defense:1},athlete:{athletic:1},
+          pointgod:{pass:1,three:1},twoway:{shooting:1,defense:1},
+          allround:{iq:1,athletic:1},chosen:{shooting:1,pass:1,defense:1,athletic:1}
+        }[G.talentType||"normal"];
+        if(growth)for(const k in growth)if(k in G.attr)G.attr[k]=Math.min(99,G.attr[k]+growth[k]);
       }
-
       let sp=computeSP();`
     );
 
-    /* =========================================================
-       7. 建角畫面加入 10 種天才選擇
-       ========================================================= */
-    const talentUI=`
-<script>
-window.__TALENT_TYPE__='normal';
-window.__TALENT_RARITY__='一般';
+    // 7) 在原遊戲第一段 script 開頭設定已選天賦
+    const globals=
+      "window.__TALENT_TYPE__='"+escJs(selected.id)+"';"+
+      "window.__TALENT_RARITY__='"+escJs(selected.rarity)+"';"+
+      "window.__TALENT_NAME__='"+escJs(selected.name)+"';";
+    source=source.replace(/<script>/i,'<script>'+globals);
 
-(function(){
+    // 8) 遊戲內右下角顯示目前天賦，方便確認有成功套用
+    const badge=
+      '<div id="chosen-talent-badge" style="position:fixed;right:8px;bottom:8px;z-index:99999;background:rgba(11,18,32,.92);border:1px solid '+selected.color+';border-radius:999px;padding:6px 9px;font:700 10px system-ui;color:'+selected.color+';box-shadow:0 4px 15px rgba(0,0,0,.35);pointer-events:none">['+
+      selected.rarity+'] '+selected.name+'</div>';
+    source=source.replace(/<body([^>]*)>/i,'<body$1>'+badge);
 
-  const TALENTS=[
-    {
-      id:'normal',
-      rarity:'一般',
-      name:'⚪ 一般選手',
-      detail:'原版隨機潛力與成長',
-      color:'#9DB0CC'
-    },
-
-    {
-      id:'scorer',
-      rarity:'A',
-      name:'🔥 得分機器',
-      detail:'潛力 91｜得分 +11｜三分 +5｜每季得分額外 +1',
-      color:'#4DA3FF'
-    },
-    {
-      id:'sniper',
-      rarity:'A',
-      name:'🎯 神射手',
-      detail:'潛力 91｜三分 +13｜得分 +5｜每季三分額外 +1',
-      color:'#4DA3FF'
-    },
-    {
-      id:'rebounder',
-      rarity:'A',
-      name:'🧲 籃板怪獸',
-      detail:'潛力 91｜籃板 +14｜防守 +6｜每季籃板額外 +1',
-      color:'#4DA3FF'
-    },
-
-    {
-      id:'playmaker',
-      rarity:'S',
-      name:'🧠 球場魔術師',
-      detail:'潛力 94｜組織 +12｜球商 +9｜每季組織、球商 +1',
-      color:'#A66CFF'
-    },
-    {
-      id:'lockdown',
-      rarity:'S',
-      name:'🛡️ 防守怪物',
-      detail:'潛力 94｜防守 +13｜體能 +6｜每季防守額外 +1',
-      color:'#A66CFF'
-    },
-
-    {
-      id:'athlete',
-      rarity:'SS',
-      name:'🚀 運動怪物',
-      detail:'潛力 96｜體能 +14｜防守/籃板 +4｜每季體能 +1',
-      color:'#FF6A2C'
-    },
-    {
-      id:'pointgod',
-      rarity:'SS',
-      name:'👑 控衛之神',
-      detail:'潛力 96｜組織 +11｜球商 +9｜三分 +7｜每季組織、三分 +1',
-      color:'#FF6A2C'
-    },
-    {
-      id:'twoway',
-      rarity:'SS',
-      name:'⚔️ 攻防一體',
-      detail:'潛力 96｜得分 +7｜防守 +9｜體能 +6｜每季得分、防守 +1',
-      color:'#FF6A2C'
-    },
-
-    {
-      id:'allround',
-      rarity:'傳奇',
-      name:'🃏 全能天才',
-      detail:'潛力 98｜所有能力 +7｜每季球商、體能 +1｜訓練點 +4',
-      color:'#F2B84B'
-    },
-    {
-      id:'chosen',
-      rarity:'傳奇',
-      name:'🌟 天選之子',
-      detail:'潛力 99｜所有能力 +8｜每季得分、組織、防守、體能 +1｜訓練點 +4',
-      color:'#F2B84B'
-    }
-  ];
-
-  function addSelector(){
-    if(document.getElementById('talent-selector')) return;
-
-    const buttons=[...document.querySelectorAll('button')];
-    const startBtn=buttons.find(b=>
-      /開始|建立|生涯|出發|開啟/.test((b.textContent||'').trim())
-    );
-
-    if(!startBtn) return;
-
-    const box=document.createElement('div');
-    box.id='talent-selector';
-
-    box.style.cssText=
-      'margin:12px 0;padding:12px;border:1px solid #2A3A57;border-radius:14px;background:#0d1626';
-
-    box.innerHTML=
-      '<div style="font-weight:900;font-size:16px;margin-bottom:3px">🌟 選擇球員天賦</div>'+
-      '<div style="font-size:11px;color:#9DB0CC;margin-bottom:10px">'+
-      '稀有度越高，起始能力、潛力與每季成長越強。'+
-      '</div>'+
-      '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">'+
-      '<span style="font-size:10px;color:#9DB0CC">一般</span>'+
-      '<span style="font-size:10px;color:#4DA3FF">A</span>'+
-      '<span style="font-size:10px;color:#A66CFF">S</span>'+
-      '<span style="font-size:10px;color:#FF6A2C">SS</span>'+
-      '<span style="font-size:10px;color:#F2B84B">傳奇</span>'+
-      '</div>'+
-      '<div id="talent-list" style="display:grid;grid-template-columns:1fr 1fr;gap:7px"></div>'+
-      '<div id="talent-desc" style="margin-top:10px;padding:10px;border-radius:10px;background:#131E33;color:#9DB0CC;font-size:11px;line-height:1.5">'+
-      '目前：一般選手'+
-      '</div>';
-
-    const list=box.querySelector('#talent-list');
-    const desc=box.querySelector('#talent-desc');
-
-    function selectTalent(t){
-      window.__TALENT_TYPE__=t.id;
-      window.__TALENT_RARITY__=t.rarity;
-
-      [...list.querySelectorAll('button')].forEach(btn=>{
-        const on=btn.dataset.id===t.id;
-        const data=TALENTS.find(x=>x.id===btn.dataset.id);
-        btn.style.borderColor=on?data.color:'#2A3A57';
-        btn.style.boxShadow=on?'0 0 0 1px '+data.color+', 0 0 14px '+data.color+'55':'none';
-        btn.style.background=on?'#1B2842':'#131E33';
-      });
-
-      desc.innerHTML=
-        '<div style="font-weight:900;color:'+t.color+'">'+
-        '['+t.rarity+'] '+t.name+
-        '</div>'+
-        '<div style="margin-top:4px">'+t.detail+'</div>'+
-        '<div style="margin-top:4px;color:#F2B84B">'+
-        '每季訓練點加成：+'+
-        ({'一般':0,'A':1,'S':2,'SS':3,'傳奇':4}[t.rarity]||0)+
-        '</div>';
-    }
-
-    TALENTS.forEach(t=>{
-      const btn=document.createElement('button');
-
-      btn.type='button';
-      btn.dataset.id=t.id;
-
-      btn.style.cssText=
-        'padding:10px 6px;border:1px solid #2A3A57;border-radius:10px;'+
-        'background:#131E33;color:#F4F2EC;font-weight:700;font-size:12px;line-height:1.3;text-align:center';
-
-      btn.innerHTML=
-        '<div style="font-size:9px;color:'+t.color+';font-weight:900;margin-bottom:2px">'+
-        t.rarity+
-        '</div>'+
-        '<div>'+t.name+'</div>';
-
-      btn.onclick=()=>selectTalent(t);
-
-      list.appendChild(btn);
-    });
-
-    startBtn.parentElement.insertBefore(box,startBtn);
-
-    selectTalent(TALENTS[0]);
-  }
-
-  addSelector();
-
-  new MutationObserver(addSelector).observe(
-    document.documentElement,
-    {childList:true,subtree:true}
-  );
-
-})();
-<\/script>`;
-
-    source=source.replace(/<\/body>/i,talentUI+'\n</body>');
-
-    /* 原遊戲相對資源仍以原網站為基準 */
+    // 9) 相對資源仍取自原網站
     if(!/<base[\s>]/i.test(source)){
       source=source.replace(
         /<head([^>]*)>/i,
@@ -361,11 +219,10 @@ window.__TALENT_RARITY__='一般';
     document.close();
 
   }catch(err){
-    document.getElementById('loading').innerHTML=
-      '載入失敗：'+String(err.message)+
-      '<br><br>請確認網路連線後重新整理。';
+    loading.style.display='flex';
+    loading.innerHTML='載入失敗：'+String(err.message)+'<br><br>請重新整理後再試。';
   }
-})();
+};
 </script>
 
 </body>
