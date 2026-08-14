@@ -3,15 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Hardwood Life · 天才選擇版</title>
+<title>Hardwood Life · NBA 球隊需求選秀版</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%;background:#0b1220;color:#f4f2ec;font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif}
 body{min-height:100vh;background:radial-gradient(900px 500px at 50% -10%,#1c2f51 0%,transparent 60%),#0b1220}
 #talent-screen{max-width:520px;margin:0 auto;padding:22px 14px 40px}
 .hero{text-align:center;padding:12px 8px 18px}
-.hero h1{font-size:28px;margin:0 0 7px}
+.hero h1{font-size:27px;margin:0 0 7px}
 .hero p{margin:0;color:#9db0cc;font-size:13px;line-height:1.55}
+.mode-box{margin-bottom:14px;padding:12px;border:1px solid #2a3a57;border-radius:14px;background:#101a2d}
+.mode-title{font-weight:900;font-size:15px;margin-bottom:8px}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mode-btn{border:1px solid #2a3a57;border-radius:11px;background:#131e33;color:#f4f2ec;padding:11px 8px;font-weight:800;font-size:12px}
+.mode-btn.on{border-color:#f2b84b;box-shadow:0 0 14px rgba(242,184,75,.25)}
+.mode-desc{font-size:10.5px;color:#9db0cc;margin-top:8px;line-height:1.5}
 .legend{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:11px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .card{border:1px solid #2a3a57;background:#131e33;border-radius:14px;padding:11px 9px;color:#f4f2ec;text-align:left;min-height:92px}
@@ -24,14 +30,36 @@ body{min-height:100vh;background:radial-gradient(900px 500px at 50% -10%,#1c2f51
 #go{width:100%;border:0;border-radius:13px;background:#ff6a2c;color:#1c0d04;font-size:16px;font-weight:900;padding:14px}
 #go:disabled{opacity:.5}
 #loading{display:none;min-height:100vh;align-items:center;justify-content:center;text-align:center;padding:24px;line-height:1.7}
+.person-box{margin:14px 0;padding:12px;border:1px solid #2a3a57;border-radius:14px;background:#101a2d}
+.person-title{font-weight:900;font-size:15px;margin-bottom:8px}
+.person-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.person-btn{border:1px solid #2a3a57;border-radius:10px;background:#131e33;color:#f4f2ec;padding:9px 7px;font-size:11px;font-weight:800;text-align:left}
+.person-btn.on{border-color:#4DA3FF;box-shadow:0 0 12px rgba(77,163,255,.25);background:#1b2842}
+.person-note{font-size:10.5px;color:#9db0cc;line-height:1.5;margin-top:8px}
+
 </style>
 </head>
 <body>
 
 <div id="talent-screen">
   <div class="hero">
-    <h1>🌟 選擇球員天賦</h1>
-    <p>先選一種天才類型，再開始 Hardwood Life。<br>骰子仍然固定為 6。</p>
+    <h1>🌟 Hardwood Life 改造版</h1>
+    <p>天才類型＋NBA 球隊需求選秀。<br>事件骰子仍固定為 6。</p>
+  </div>
+
+  <div class="mode-box">
+    <div class="mode-title">🏀 生涯起點</div>
+    <div class="mode-grid">
+      <button id="mode-normal" class="mode-btn on" type="button">🏫 正常高中開始</button>
+      <button id="mode-nba" class="mode-btn" type="button">🇺🇸 挑戰 NBA 選秀</button>
+    </div>
+    <div id="mode-desc" class="mode-desc">
+      正常模式：從高中開始，照原版生涯流程遊玩。
+    </div>
+  </div>
+
+  <div class="hero" style="padding-top:2px">
+    <h1 style="font-size:22px">選擇球員天賦</h1>
     <div class="legend">
       <span style="color:#9DB0CC">一般</span>
       <span style="color:#4DA3FF">A</span>
@@ -42,6 +70,13 @@ body{min-height:100vh;background:radial-gradient(900px 500px at 50% -10%,#1c2f51
   </div>
 
   <div id="cards" class="grid"></div>
+
+  <div class="person-box">
+    <div class="person-title">🧠 球員性格</div>
+    <div id="person-grid" class="person-grid"></div>
+    <div id="person-note" class="person-note">目前：🎲 隨機性格</div>
+  </div>
+
   <div id="selected">尚未選擇</div>
   <button id="go" disabled>選好後進入遊戲 🏀</button>
 </div>
@@ -53,7 +88,7 @@ const SOURCE='https://raw.githubusercontent.com/a3283249-droid/hardwood-life/mai
 
 const TALENTS=[
   {id:'normal',rarity:'一般',name:'⚪ 一般選手',color:'#9DB0CC',
-   desc:'原版隨機潛力與成長',detail:'原版能力與隨機潛力，不額外加成。'},
+   desc:'原版隨機潛力',detail:'原版能力與隨機潛力。直接挑戰 NBA 時很可能落選。'},
   {id:'scorer',rarity:'A',name:'🔥 得分機器',color:'#4DA3FF',
    desc:'得分特化',detail:'潛力 91｜得分 +11｜三分 +5｜每季得分 +1｜訓練點 +1'},
   {id:'sniper',rarity:'A',name:'🎯 神射手',color:'#4DA3FF',
@@ -61,25 +96,71 @@ const TALENTS=[
   {id:'rebounder',rarity:'A',name:'🧲 籃板怪獸',color:'#4DA3FF',
    desc:'禁區籃板特化',detail:'潛力 91｜籃板 +14｜防守 +6｜每季籃板 +1｜訓練點 +1'},
   {id:'playmaker',rarity:'S',name:'🧠 球場魔術師',color:'#A66CFF',
-   desc:'組織與球商特化',detail:'潛力 94｜組織 +12｜球商 +9｜每季組織、球商 +1｜訓練點 +2'},
+   desc:'組織與球商',detail:'潛力 94｜組織 +12｜球商 +9｜每季組織、球商 +1｜訓練點 +2'},
   {id:'lockdown',rarity:'S',name:'🛡️ 防守怪物',color:'#A66CFF',
    desc:'鎖防特化',detail:'潛力 94｜防守 +13｜體能 +6｜每季防守 +1｜訓練點 +2'},
   {id:'athlete',rarity:'SS',name:'🚀 運動怪物',color:'#FF6A2C',
-   desc:'爆發力與體能特化',detail:'潛力 96｜體能 +14｜防守/籃板 +4｜每季體能 +1｜訓練點 +3'},
+   desc:'爆發力與體能',detail:'潛力 96｜體能 +14｜防守/籃板 +4｜每季體能 +1｜訓練點 +3'},
   {id:'pointgod',rarity:'SS',name:'👑 控衛之神',color:'#FF6A2C',
-   desc:'控場與外線特化',detail:'潛力 96｜組織 +11｜球商 +9｜三分 +7｜每季組織、三分 +1｜訓練點 +3'},
+   desc:'控場與外線',detail:'潛力 96｜組織 +11｜球商 +9｜三分 +7｜每季組織、三分 +1｜訓練點 +3'},
   {id:'twoway',rarity:'SS',name:'⚔️ 攻防一體',color:'#FF6A2C',
-   desc:'得分與防守兼備',detail:'潛力 96｜得分 +7｜防守 +9｜體能 +6｜每季得分、防守 +1｜訓練點 +3'},
+   desc:'攻防兼備',detail:'潛力 96｜得分 +7｜防守 +9｜體能 +6｜每季得分、防守 +1｜訓練點 +3'},
   {id:'allround',rarity:'傳奇',name:'🃏 全能天才',color:'#F2B84B',
    desc:'全面型怪物',detail:'潛力 98｜全部能力 +7｜每季球商、體能 +1｜訓練點 +4'},
   {id:'chosen',rarity:'傳奇',name:'🌟 天選之子',color:'#F2B84B',
    desc:'最頂級全能天賦',detail:'潛力 99｜全部能力 +8｜每季得分、組織、防守、體能 +1｜訓練點 +4'}
 ];
 
+
+const PERSONALITIES=[
+  {id:"random",name:"🎲 隨機性格",desc:"建角時隨機決定。"},
+  {id:"leader",name:"👑 領袖",desc:"更衣室影響力強，士氣較穩定。"},
+  {id:"quiet",name:"🧊 沉默殺手",desc:"少說多做，球商與關鍵表現更穩。"},
+  {id:"competitor",name:"🔥 好勝",desc:"競爭心強，容易搶到更高球隊角色。"},
+  {id:"loyal",name:"❤️ 忠誠",desc:"較願意留隊，也更容易獲得母隊續約。"},
+  {id:"teamfirst",name:"🤝 團隊至上",desc:"組織與球商成長較順。"},
+  {id:"confident",name:"😎 自信",desc:"名氣與進攻表現容易被放大。"},
+  {id:"hothead",name:"💢 火爆",desc:"防守與對抗更強，但交易與更衣室風險較高。"}
+];
+let selectedPersonality="random";
+
 let selected=null;
+let startMode='normal';
+
+const modeNormal=document.getElementById('mode-normal');
+const modeNBA=document.getElementById('mode-nba');
+const modeDesc=document.getElementById('mode-desc');
+
+function setMode(mode){
+  startMode=mode;
+  modeNormal.classList.toggle('on',mode==='normal');
+  modeNBA.classList.toggle('on',mode==='nba');
+  modeDesc.innerHTML=mode==='nba'
+    ? '<b style="color:#F2B84B">挑戰模式：</b>建角後直接參加 NBA 選秀，但不保證中選。球隊會看 OVR、潛力、天賦與「陣容需求契合度」。能力太低會落選。'
+    : '正常模式：從高中開始，照原版生涯流程遊玩。';
+}
+modeNormal.onclick=()=>setMode('normal');
+modeNBA.onclick=()=>setMode('nba');
+
 const cards=document.getElementById('cards');
 const selectedBox=document.getElementById('selected');
 const go=document.getElementById('go');
+
+const personGrid=document.getElementById('person-grid');
+const personNote=document.getElementById('person-note');
+for(const p of PERSONALITIES){
+  const b=document.createElement('button');
+  b.type='button';
+  b.className='person-btn'+(p.id==="random"?' on':'');
+  b.dataset.pid=p.id;
+  b.innerHTML='<div>'+p.name+'</div><div style="font-weight:400;color:#9db0cc;margin-top:2px">'+p.desc+'</div>';
+  b.onclick=()=>{
+    selectedPersonality=p.id;
+    personGrid.querySelectorAll('.person-btn').forEach(x=>x.classList.toggle('on',x.dataset.pid===p.id));
+    personNote.textContent='目前：'+p.name+'｜'+p.desc;
+  };
+  personGrid.appendChild(b);
+}
 
 for(const t of TALENTS){
   const b=document.createElement('button');
@@ -90,7 +171,6 @@ for(const t of TALENTS){
     '<div class="rarity" style="color:'+t.color+'">'+t.rarity+'</div>'+
     '<div class="name">'+t.name+'</div>'+
     '<div class="desc">'+t.desc+'</div>';
-
   b.onclick=()=>{
     selected=t;
     document.querySelectorAll('.card').forEach(x=>{
@@ -99,8 +179,7 @@ for(const t of TALENTS){
       x.style.borderColor=x.dataset.id===t.id?tx.color:'#2a3a57';
       x.style.boxShadow=x.dataset.id===t.id?'0 0 14px '+tx.color+'55':'none';
     });
-    selectedBox.innerHTML=
-      '<b style="color:'+t.color+'">['+t.rarity+'] '+t.name+'</b><br>'+t.detail;
+    selectedBox.innerHTML='<b style="color:'+t.color+'">['+t.rarity+'] '+t.name+'</b><br>'+t.detail;
     go.disabled=false;
     go.textContent='使用 '+t.name+' 開始遊戲 🏀';
   };
@@ -124,7 +203,7 @@ go.onclick=async()=>{
     if(!res.ok)throw new Error('HTTP '+res.status);
     let source=await res.text();
 
-    // 1) 所有 1~6 事件骰固定為 6
+    // 1) 事件骰子固定 6
     source=source.replace(/rint\s*\(\s*1\s*,\s*6\s*\)/g,'6');
 
     // 2) 起始能力加成
@@ -146,7 +225,7 @@ go.onclick=async()=>{
           chosen:{shooting:8,three:8,pass:8,defense:8,rebound:8,athletic:8,iq:8}
         };
         const b=buffs[tt];
-        if(b) for(const k in b) if(k in attr) attr[k]=clamp(attr[k]+b[k],18,82);
+        if(b)for(const k in b)if(k in attr)attr[k]=clamp(attr[k]+b[k],18,82);
       }`
     );
 
@@ -161,16 +240,17 @@ go.onclick=async()=>{
       })()`
     );
 
-    // 4) 將天賦記錄在角色存檔內
+    // 4) 天賦資料存檔
     source=source.replace(
       /name,pos,home,jersey:jn,/,
       `name,pos,home,jersey:jn,
       talentType:(window.__TALENT_TYPE__||"normal"),
       talentRarity:(window.__TALENT_RARITY__||"一般"),
-      talentName:(window.__TALENT_NAME__||"一般選手"),`
+      talentName:(window.__TALENT_NAME__||"一般選手"),
+      personality:(function(){ const p=window.__PERSONALITY__||"random"; if(p!=="random")return p; const a=["leader","quiet","competitor","loyal","teamfirst","confident","hothead"]; return a[rint(0,a.length-1)]; })(),`
     );
 
-    // 5) 稀有度每季訓練點
+    // 5) 稀有度訓練點
     source=source.replace(
       /return base \+ rint\(0,2\);/,
       `const rarityBonus={"一般":0,"A":1,"S":2,"SS":3,"傳奇":4}[G.talentRarity||"一般"]||0;
@@ -193,20 +273,1113 @@ go.onclick=async()=>{
       let sp=computeSP();`
     );
 
-    // 7) 在原遊戲第一段 script 開頭設定已選天賦
+    // 7) 插入 NBA 球隊需求 / 契合度模型
+    const teamNeedHelpers = `
+function _nbaNeedCatalog(){
+  return [
+    {id:"shooter",name:"外線射手",score:a=>a.three*.72+a.shooting*.28},
+    {id:"defender",name:"外圍防守型",score:a=>a.defense*.72+a.athletic*.28},
+    {id:"playmaker",name:"助攻控球",score:a=>a.pass*.68+a.iq*.32},
+    {id:"bench",name:"替補爆發得分",score:a=>a.shooting*.52+a.three*.25+a.athletic*.23},
+    {id:"rim",name:"護框長人",score:(a,p)=>a.defense*.55+a.rebound*.28+a.athletic*.17+((p==="C"||p==="PF")?7:0)},
+    {id:"rebound",name:"籃板手",score:a=>a.rebound*.75+a.athletic*.25},
+    {id:"3d",name:"3&D",score:a=>a.three*.45+a.defense*.45+a.athletic*.10},
+    {id:"wing",name:"側翼得分",score:(a,p)=>a.shooting*.52+a.athletic*.28+a.three*.20+((p==="SG"||p==="SF")?5:0)},
+    {id:"secondary",name:"第二持球點",score:a=>a.pass*.48+a.shooting*.30+a.iq*.22},
+    {id:"switchbig",name:"可換防內線",score:(a,p)=>a.defense*.42+a.athletic*.34+a.rebound*.24+((p==="PF"||p==="C")?5:0)}
+  ];
+}
+function _nbaHash(s){
+  let h=0;for(let i=0;i<s.length;i++)h=((h<<5)-h+s.charCodeAt(i))|0;
+  return Math.abs(h);
+}
+function nbaNeedsForTeam(team){
+  const c=_nbaNeedCatalog(),h=_nbaHash(team||"NBA");
+  const a=c[h%c.length],b=c[(Math.floor(h/7)+3)%c.length];
+  return a.id===b.id?[a]:[a,b];
+}
+function nbaFitForTeam(team){
+  const ns=nbaNeedsForTeam(team),a=G.attr,p=G.pos;
+  const vals=ns.map(n=>n.score(a,p));
+  const fit=Math.round(vals.reduce((x,y)=>x+y,0)/vals.length);
+  return {team,needs:ns.map(x=>x.name),fit};
+}
+function nbaCandidateTeams(){
+  const seen=new Set(),arr=[];
+  for(let i=0;i<80&&arr.length<14;i++){
+    const t=randTeam("NBA");
+    if(!seen.has(t)){seen.add(t);arr.push(nbaFitForTeam(t));}
+  }
+  return arr;
+}
+function nbaBestTeamForPlayer(){
+  const arr=nbaCandidateTeams();
+  arr.forEach(x=>x.board=x.fit+rnd(-4,7));
+  arr.sort((a,b)=>b.board-a.board);
+  return arr[0]||nbaFitForTeam(randTeam("NBA"));
+}
+function nbaDirectDraftScore(teamFit){
+  const ov=overall();
+  const rb={"一般":0,"A":8,"S":12,"SS":16,"傳奇":20}[G.talentRarity||"一般"]||0;
+  const pot=Math.max(0,(G.potential-70)*.18);
+  const fit=clamp((teamFit-48)*.28,-5,11);
+  const posBonus=(G.pos==="PG"&&G.attr.pass>=58)?2:0;
+  return Math.round(ov+rb+pot+fit+posBonus);
+}
+function nbaPickFromScore(score){
+  if(score<68)return null;
+  let lo,hi;
+  if(score>=94){lo=1;hi=6;}
+  else if(score>=90){lo=3;hi=10;}
+  else if(score>=86){lo=6;hi=17;}
+  else if(score>=81){lo=15;hi=30;}
+  else if(score>=75){lo=28;hi=45;}
+  else {lo=42;hi=58;}
+  const strength=clamp((score-68)/28,0,1);
+  return Math.round(clamp(hi-(hi-lo)*strength+rnd(-2,2),lo,hi));
+}
+`;
+    source=source.replace(/function newGame\(/,teamNeedHelpers+'\nfunction newGame(');
+
+    // 8) 直接挑戰 NBA：真實能力＋球隊需求決定，中選或落選
+    source=source.replace(
+      /G\.phase="intro"; render\(\); \/\/ 先看開場劇情，再進季前特訓/,
+      `if(window.__START_MODE__==="nba"){
+        G.age=19;
+        G._combine=null;
+        G.phase="nbaCombine";
+        render();
+      }else{
+        G.phase="intro"; render();
+      }`
+    );
+
+
+    // NBA 落選後的選秀結果頁改成「選擇下一站」
+    source=source.replace(
+      /const title=G\._draftMode\?"職業選秀 · 選擇下家":"自由市場 · 合約到期";/,
+      `const title=G._nbaUndrafted?"NBA 落選 · 選擇下一站":(G._draftMode?"職業選秀 · 選擇下家":"自由市場 · 合約到期");`
+    );
+
+    // 9) 正常生涯裡原本的 NBA 選秀，也改成優先配到需求契合球隊
+    source=source.replace(
+      /team:randTeam\("NBA"\), pick:npick, years:rint\(2,4\),/,
+      `team:nbaBestTeamForPlayer().team, pick:npick, years:rint(2,4),`
+    );
+    source=source.replace(
+      /team:randTeam\("NBA"\), pick:npick, years:2,/,
+      `team:nbaBestTeamForPlayer().team, pick:npick, years:2,`
+    );
+
+
+    // NBA 落選後選擇其他聯盟並簽約，記錄「落選逆襲」
+    source=source.replace(
+      /if\(offer\.pick===1\) grantTitle\("firstPick"\);/,
+      `if(offer.pick===1) grantTitle("firstPick");
+      if(G._nbaUndrafted && offer.league!=="NBA") grantTitle("undraftedHero");`
+    );
+
+
+    // ============================================================
+    // 10) 多元傷病系統 + 擴充稱號
+    // 傷病使用獨立 RNG，不受「事件骰子固定 6」影響
+    // ============================================================
+
+    // 10-1. 擴充稱號 / 標籤
+    source=source.replace(
+      /const TITLE_DEFS=\{/,
+      `const TITLE_DEFS={
+        /* --- 傷病類標籤 --- */
+        fluBug:{name:"流感病號",good:false,desc:"曾因流感缺陣",effect:"—",buff:{}},
+        glassAnkle:{name:"玻璃腳踝",good:false,desc:"腳踝曾出現明顯傷勢",effect:"—",buff:{}},
+        hamstringAlert:{name:"腿後肌警報",good:false,desc:"腿後肌傷勢留下紀錄",effect:"—",buff:{}},
+        concussionHistory:{name:"腦震盪史",good:false,desc:"曾因腦震盪進入觀察名單",effect:"—",buff:{}},
+        mclRehab:{name:"MCL 修復者",good:true,desc:"撐過內側副韌帶重傷",effect:"球商 +1",buff:{iq:1}},
+        meniscusRehab:{name:"半月板戰士",good:true,desc:"從半月板傷勢中復出",effect:"球商 +1",buff:{iq:1}},
+        aclRehab:{name:"ACL 重建者",good:true,cssClass:"legend-red",desc:"經歷前十字韌帶撕裂與漫長復健",effect:"球商 +2",buff:{iq:2}},
+        achillesRehab:{name:"跟腱重建者",good:true,cssClass:"legend-red",desc:"經歷阿基里斯腱斷裂仍繼續籃球生涯",effect:"球商 +2",buff:{iq:2}},
+        patellarRehab:{name:"髕腱重建者",good:true,cssClass:"legend-red",desc:"撐過髕腱斷裂的大傷",effect:"球商 +2",buff:{iq:2}},
+        fractureReturn:{name:"骨折歸來",good:true,desc:"從骨折傷勢中重返球場",effect:"士氣 +3",buff:{morale:3}},
+        injuryProne:{name:"傷病體質",good:false,desc:"生涯累積至少 3 次傷病",effect:"體能 -1",buff:{athletic:-1}},
+        rehabRegular:{name:"復健室常客",good:false,desc:"生涯至少兩次重大傷病",effect:"—",buff:{}},
+        hospitalVIP:{name:"傷病名單 VIP",good:false,cssClass:"legend-red",desc:"生涯累積至少 6 次傷病",effect:"體能 -1",buff:{athletic:-1}},
+        ironBody:{name:"鋼鐵之軀",good:true,desc:"連續三季沒有傷病",effect:"體能 +2",buff:{athletic:2}},
+        comebackLegend:{name:"王者歸來",good:true,cssClass:"legend-yellow",desc:"重大傷病後重返高水準",effect:"名氣 +6、士氣 +6",buff:{fame:6,morale:6}},
+
+        /* --- 球風 / 生涯型標籤 --- */
+        microwave:{name:"板凳暴徒",good:true,desc:"具備瞬間爆量得分能力",effect:"得分 +1",buff:{shooting:1}},
+        floorGeneral:{name:"場上指揮官",good:true,desc:"頂級組織與控場能力",effect:"組織 +1、球商 +1",buff:{pass:1,iq:1}},
+        perimeterLock:{name:"外線大鎖",good:true,desc:"擁有頂尖外圍防守能力",effect:"防守 +1",buff:{defense:1}},
+        threeAndD:{name:"3&D 專家",good:true,desc:"三分與防守同時達到高水準",effect:"三分 +1、防守 +1",buff:{three:1,defense:1}},
+        glassCleaner:{name:"籃板吸塵器",good:true,desc:"禁區籃板控制力出色",effect:"籃板 +1",buff:{rebound:1}},
+        rimProtector:{name:"禁區守門員",good:true,desc:"護框與禁區防守能力出色",effect:"防守 +1、籃板 +1",buff:{defense:1,rebound:1}},
+        pointForward:{name:"組織前鋒",good:true,desc:"鋒線身材卻能主導組織",effect:"組織 +1、球商 +1",buff:{pass:1,iq:1}},
+        unicorn:{name:"獨角獸長人",good:true,cssClass:"legend-purple",desc:"長人同時具備外線與運動能力",effect:"三分 +1、體能 +1",buff:{three:1,athletic:1}},
+        walkingBucket:{name:"行走的 30 分",good:true,cssClass:"legend-yellow",desc:"單季場均得分突破 30",effect:"得分 +2",buff:{shooting:2}},
+        assistKingType:{name:"傳球藝術家",good:true,desc:"單季場均助攻達到頂尖水準",effect:"組織 +2",buff:{pass:2}},
+        reboundKingType:{name:"籃板機器",good:true,desc:"單季場均籃板達到頂尖水準",effect:"籃板 +2",buff:{rebound:2}},
+        twoWayCore:{name:"攻防核心",good:true,cssClass:"legend-blue",desc:"進攻與防守都能成為球隊核心",effect:"得分 +1、防守 +1",buff:{shooting:1,defense:1}},
+        franchiseStone:{name:"建隊基石",good:true,cssClass:"legend-yellow",desc:"年輕時就達到超級球星戰力",effect:"名氣 +5",buff:{fame:5}},
+        lateBloomer:{name:"大器晚成",good:true,desc:"28 歲後才攀上生涯高峰",effect:"球商 +2、士氣 +3",buff:{iq:2,morale:3}},
+      `
+    );
+
+    // 10-2. 插入多元傷病引擎；覆寫原本較單純的 seasonInjuryCheck
+    source=source.replace(
+      /\/\* ---------- 賽季回顧後 → 進入休賽期流程 ---------- \*\//,
+      `
+/* ===== 改造版：多元傷病系統 ===== */
+const _baseSeasonInjuryCheck = seasonInjuryCheck;
+
+function _hlPickWeighted(arr){
+  const total=arr.reduce((s,x)=>s+(x.w||1),0);
+  let r=_rng()*total;
+  for(const x of arr){
+    r-=x.w||1;
+    if(r<=0)return x;
+  }
+  return arr[arr.length-1];
+}
+
+function _hlApplyMods(mods){
+  if(!mods)return;
+  for(const k in mods){
+    if(k in G.attr) G.attr[k]=clamp(G.attr[k]+mods[k],15,99);
+  }
+}
+
+function _hlRecordInjury(inj,miss,career){
+  G.injuryHistory=G.injuryHistory||[];
+  G.injuryHistory.push({
+    year:G.year,
+    age:G.age,
+    league:G.league,
+    team:G.team,
+    key:inj.key,
+    name:inj.name,
+    severity:inj.major?"major":"minor",
+    missGames:miss,
+    career:!!career
+  });
+
+  if(inj.title)grantTitle(inj.title);
+
+  const hist=G.injuryHistory;
+  if(hist.length>=3)grantTitle("injuryProne");
+  if(hist.filter(x=>x.severity==="major").length>=2)grantTitle("rehabRegular");
+  if(hist.length>=6)grantTitle("hospitalVIP");
+}
+
+function _hlSeasonIdentityTags(){
+  const s=G.lastReview;
+  if(!s)return;
+
+  const a=G.attr||{};
+  const p=G.pos;
+  const ppg=Number(s.ppg||0);
+  const rpg=Number(s.rpg||0);
+  const apg=Number(s.apg||0);
+  const ov=overall();
+
+  if((G.talentType==="scorer" || (a.shooting>=78&&ppg>=18))) grantTitle("microwave");
+  if(a.pass>=84 || apg>=8) grantTitle("floorGeneral");
+  if(a.defense>=86) grantTitle("perimeterLock");
+  if(a.three>=82 && a.defense>=82) grantTitle("threeAndD");
+  if(a.rebound>=86 || rpg>=10.5) grantTitle("glassCleaner");
+  if((p==="PF"||p==="C") && a.defense>=82 && a.rebound>=78) grantTitle("rimProtector");
+  if((p==="SF"||p==="PF") && a.pass>=78 && a.iq>=76) grantTitle("pointForward");
+  if((p==="PF"||p==="C") && a.three>=78 && a.athletic>=80) grantTitle("unicorn");
+  if(ppg>=30) grantTitle("walkingBucket");
+  if(apg>=10) grantTitle("assistKingType");
+  if(rpg>=13) grantTitle("reboundKingType");
+  if(ppg>=20 && a.defense>=84) grantTitle("twoWayCore");
+  if(G.age<=24 && ov>=90) grantTitle("franchiseStone");
+  if(G.age>=28 && ov>=86) grantTitle("lateBloomer");
+
+  if(hasTitle("phoenix") && (ov>=84 || ppg>=20)) grantTitle("comebackLegend");
+}
+
+function _hlSpecificInjury(forcedMajor,forcedCareer){
+  const minorPool=[
+    {key:"flu",name:"流感",w:17,health:-9,mods:{},miss:[1,4],title:"fluBug",
+     text:"高燒與全身無力，醫療團隊要求完全休養。"},
+    {key:"gastro",name:"急性腸胃炎",w:7,health:-8,mods:{},miss:[1,3],
+     text:"脫水與腸胃不適讓你暫時無法正常訓練。"},
+    {key:"ankle",name:"腳踝扭傷",w:15,health:-12,mods:{athletic:-1},miss:[2,7],title:"glassAnkle",
+     text:"落地時踩到腳，腳踝明顯腫脹。"},
+    {key:"hamstring",name:"腿後肌拉傷",w:12,health:-15,mods:{athletic:-2},miss:[4,10],title:"hamstringAlert",
+     text:"高速衝刺時腿後側突然緊繃，被迫停賽。"},
+    {key:"back",name:"下背痙攣",w:9,health:-11,mods:{athletic:-1,defense:-1},miss:[2,7],
+     text:"下背部僵硬疼痛，轉身與對抗受到影響。"},
+    {key:"wrist",name:"手腕扭傷",w:8,health:-10,mods:{shooting:-1,three:-1},miss:[2,6],
+     text:"手腕受傷，投籃手感與控球都受到影響。"},
+    {key:"calf",name:"小腿拉傷",w:8,health:-13,mods:{athletic:-1},miss:[3,8],
+     text:"小腿肌肉拉傷，需要避免爆發衝刺。"},
+    {key:"shoulder",name:"肩部拉傷",w:6,health:-12,mods:{shooting:-1,defense:-1},miss:[3,8],
+     text:"肩部發炎疼痛，出手與碰撞對抗受到限制。"},
+    {key:"concussion",name:"腦震盪",w:5,health:-18,mods:{iq:-1},miss:[4,9],title:"concussionHistory",
+     text:"碰撞後出現暈眩症狀，必須通過腦震盪程序才能復出。"}
+  ];
+
+  const majorPool=[
+    {key:"mcl",name:"MCL 內側副韌帶撕裂",w:11,health:-28,mods:{athletic:-2,defense:-2},miss:[12,24],title:"mclRehab",career:.01,
+     text:"膝蓋內側韌帶受損，需要長期休養與肌力重建。"},
+    {key:"meniscus",name:"半月板撕裂",w:10,health:-32,mods:{athletic:-3,defense:-2},miss:[16,30],title:"meniscusRehab",career:.015,
+     text:"半月板受傷，需要手術評估與漫長復健。"},
+    {key:"stress",name:"足部應力性骨折",w:9,health:-30,mods:{athletic:-3},miss:[14,28],title:"fractureReturn",career:.01,
+     text:"長期累積負荷造成骨裂，必須完全停止高強度運動。"},
+    {key:"handFracture",name:"掌骨骨折",w:8,health:-27,mods:{shooting:-3,three:-2,pass:-1},miss:[10,22],title:"fractureReturn",career:.005,
+     text:"手部骨折導致投籃與控球暫時大受影響。"},
+    {key:"shoulderDisloc",name:"肩關節脫臼",w:7,health:-30,mods:{shooting:-2,defense:-2,pass:-1},miss:[12,25],career:.01,
+     text:"碰撞造成肩關節脫臼，必須重新建立穩定度。"},
+    {key:"acl",name:"ACL 前十字韌帶撕裂",w:7,health:-46,mods:{athletic:-6,defense:-4},miss:[30,55],title:"aclRehab",career:.035,
+     text:"膝蓋前十字韌帶撕裂，預計需要手術與約一年的復健。"},
+    {key:"achilles",name:"阿基里斯腱斷裂",w:4,health:-52,mods:{athletic:-8,defense:-3},miss:[35,60],title:"achillesRehab",career:.07,
+     text:"跟腱斷裂是籃球員最嚴重的傷勢之一，爆發力面臨巨大考驗。"},
+    {key:"patellar",name:"髕腱斷裂",w:3,health:-54,mods:{athletic:-7,rebound:-3,defense:-2},miss:[36,60],title:"patellarRehab",career:.08,
+     text:"髕腱斷裂，需要大手術與長期復健，回歸難度極高。"}
+  ];
+
+  let major=!!forcedMajor;
+  if(!forcedMajor){
+    let conditional=.11;
+    if(G.age>=30)conditional+=(G.age-29)*.025;
+    if(G.health<65)conditional+=.08;
+    if(G.health<45)conditional+=.10;
+    major=chance(clamp(conditional,.08,.48));
+  }
+
+  const inj=_hlPickWeighted(major?majorPool:minorPool);
+  const miss=Math.round(rnd(inj.miss[0],inj.miss[1]));
+
+  _hlApplyMods(inj.mods);
+  G.health=clamp(G.health+(inj.health||0),5,100);
+
+  let career=false;
+  if(major && isPro()){
+    const ageRisk=Math.max(0,G.age-31)*.025;
+    const healthRisk=G.health<35?.06:0;
+    career=!!forcedCareer || chance(clamp((inj.career||0)+ageRisk+healthRisk,0,.65));
+  }
+
+  // 讓賽季回顧中的出賽數也反映傷病缺席
+  if(G.lastReview && typeof G.lastReview.gp==="number"){
+    const maxMiss=Math.max(0,G.lastReview.gp-1);
+    G.lastReview.gp=Math.max(1,G.lastReview.gp-Math.min(miss,maxMiss));
+  }
+
+  _hlRecordInjury(inj,miss,career);
+  if(major && !career){
+    const severe=["acl","achilles","patellar"].includes(inj.key);
+    G.rehab={
+      name:inj.name,
+      key:inj.key,
+      stage:0,
+      seasons:severe?2:1,
+      status:"手術／初期復健"
+    };
+  }
+  G._healthyStreak=0;
+
+  const prefix=major?"【重大傷病】":"【傷病】";
+  const end=career
+    ?" 醫療團隊評估後認為，身體已難以負荷職業層級的長期強度。"
+    :" 預估缺陣約 "+miss+" 場。";
+
+  return {
+    major:major,
+    career:career,
+    name:inj.name,
+    missGames:miss,
+    text:prefix+" "+inj.name+"｜"+inj.text+end
+  };
+}
+
+seasonInjuryCheck=function(){
+  _hlSeasonIdentityTags();
+
+  // 保留原本酒駕等特殊事件
+  if(G._memInjury==="drunk_driving"){
+    G._healthyStreak=0;
+    return _baseSeasonInjuryCheck();
+  }
+
+  // 原版事件指定的「賽季報銷 / 生涯級重傷」改成具體傷名
+  if(G._memInjury==="season" || G._memInjury==="career"){
+    const forced=G._memInjury;
+    G._memInjury=null;
+    return _hlSpecificInjury(true,forced==="career"&&isPro());
+  }
+
+  // 獨立傷病率：骰子固定 6 也不影響
+  let p=.22;
+  if(G.age>=28)p+=(G.age-27)*.012;
+  if(G.health<70)p+=.07;
+  if(G.health<50)p+=.10;
+  if((G.majorInjuries||0)>=2)p+=.035;
+  p=clamp(p,.16,.52);
+
+  if(chance(p)){
+    return _hlSpecificInjury(false,false);
+  }
+
+  // 健康賽季：恢復一些健康並累積鐵人連續季
+  G.health=clamp(G.health+rnd(4,11),0,100);
+  G._healthyStreak=(G._healthyStreak||0)+1;
+  if(G._healthyStreak>=3)grantTitle("ironBody");
+
+  return null;
+};
+
+/* ---------- 賽季回顧後 → 進入休賽期流程 ---------- */`
+    );
+
+
+    // ============================================================
+    // 11) 生涯深度系統：Combine / 球隊角色 / 陣容競爭 / 合約 / 交易 / 性格 / 生涯履歷
+    // ============================================================
+
+    // 11-1. 額外角色與生涯稱號
+    source=source.replace(
+      /const TITLE_DEFS=\{/,
+      `const TITLE_DEFS={
+        sixthManRole:{name:"板凳暴徒核心",good:true,desc:"成為球隊重要第六人",effect:"得分 +1",buff:{shooting:1}},
+        starterRole:{name:"站穩先發",good:true,desc:"成功搶下固定先發位置",effect:"士氣 +3",buff:{morale:3}},
+        franchiseRole:{name:"非賣品",good:true,cssClass:"legend-yellow",desc:"成為球隊建隊核心",effect:"名氣 +5",buff:{fame:5}},
+        superstarRole:{name:"聯盟門面",good:true,cssClass:"legend-yellow",desc:"躍升超級巨星角色",effect:"名氣 +8、士氣 +5",buff:{fame:8,morale:5}},
+        combineStar:{name:"體測怪物",good:true,desc:"選秀體測表現頂尖",effect:"名氣 +3",buff:{fame:3}},
+        combineFall:{name:"體測掉股",good:false,desc:"選秀體測表現不如預期",effect:"—",buff:{}},
+        lockerLeader:{name:"更衣室領袖",good:true,desc:"長期維持正向更衣室影響力",effect:"球商 +1、士氣 +4",buff:{iq:1,morale:4}},
+        tradeDemand:{name:"吹密",good:false,desc:"曾公開要求球隊交易自己",effect:"名氣 -2",buff:{fame:-2}},
+      `
+    );
+
+    // 11-2. 性格系統
+    source=source.replace(
+      /function startSeason\(\)\{/,
+      `function _hlPersonalityName(id){
+        return {
+          leader:"👑 領袖",quiet:"🧊 沉默殺手",competitor:"🔥 好勝",
+          loyal:"❤️ 忠誠",teamfirst:"🤝 團隊至上",confident:"😎 自信",
+          hothead:"💢 火爆"
+        }[id]||"一般";
+      }
+      function _hlApplyPersonalitySeason(){
+        if(!G)return;
+        G._personalitySeasons=(G._personalitySeasons||0)+1;
+        const n=G._personalitySeasons,p=G.personality||"quiet";
+        if(p==="leader"){
+          G.morale=clamp(G.morale+3,0,100);
+          if(n>=3)grantTitle("lockerLeader");
+        }else if(p==="quiet"){
+          if(n%3===0)G.attr.iq=clamp(G.attr.iq+1,15,99);
+        }else if(p==="competitor"){
+          G.morale=clamp(G.morale+(G.role==="板凳末端"?-2:1),0,100);
+          if(n%2===0)G.attr.athletic=clamp(G.attr.athletic+1,15,99);
+        }else if(p==="loyal"){
+          G.morale=clamp(G.morale+4,0,100);
+        }else if(p==="teamfirst"){
+          if(n%3===0){G.attr.pass=clamp(G.attr.pass+1,15,99);G.attr.iq=clamp(G.attr.iq+1,15,99);}
+        }else if(p==="confident"){
+          G.fame=clamp(G.fame+2,0,100);
+          G.morale=clamp(G.morale+1,0,100);
+        }else if(p==="hothead"){
+          if(n%3===0)G.attr.defense=clamp(G.attr.defense+1,15,99);
+          G.morale=clamp(G.morale+rint(-2,2),0,100);
+        }
+      }
+      function _hlAdvanceRehab(){
+        if(!G||!G.rehab)return;
+        const r=G.rehab;
+        r.stage=(r.stage||0)+1;
+        G.health=clamp(G.health+12,0,100);
+        if(r.stage===1){
+          r.status="限制出賽／找回爆發力";
+          G._rehabMinutesPenalty=5;
+        }else{
+          r.status="接近完全復出";
+          G._rehabMinutesPenalty=2;
+        }
+        if(r.stage>=r.seasons){
+          G._rehabMinutesPenalty=0;
+          G.rehab=null;
+          grantTitle("phoenix");
+        }
+      }
+      function _hlTeamTradeRisk(){
+        if(!G||!isPro()||!G.contract||G.league==="高中")return;
+        let p=.025;
+        if(["板凳末端","輪替球員"].includes(G.role))p+=.055;
+        if(G.morale<45)p+=.04;
+        if(G.personality==="hothead")p+=.035;
+        if(G.personality==="loyal")p-=.018;
+        if(chance(clamp(p,.005,.16))){
+          const old=G.team;
+          const nt=randTeam(G.league,G.team);
+          if(nt&&nt!==old){
+            G.team=nt;
+            G.contract.team=nt;
+            G._careerNews="🔀 球隊交易｜"+old+" → "+nt;
+            G.morale=clamp(G.morale-3,0,100);
+          }
+        }
+      }
+      function _hlBeforeSeasonSystems(){
+        _hlAdvanceRehab();
+        _hlApplyPersonalitySeason();
+        _hlTeamTradeRisk();
+      }
+      function startSeason(){
+        _hlBeforeSeasonSystems();`
+    );
+
+    // 11-3. NBA Combine / 試訓
+    source=source.replace(
+      /function render\(\)\{/,
+      `function _hlCombineMetric(v,noise=7){return Math.round(clamp(v+rnd(-noise,noise),25,99));}
+      function _hlRunCombine(){
+        const a=G.attr,p=G.personality||"quiet";
+        const sprint=_hlCombineMetric(a.athletic*.88+G.potential*.08,7);
+        const shooting=_hlCombineMetric(a.shooting*.42+a.three*.48+G.potential*.06,8);
+        const creation=_hlCombineMetric(a.pass*.58+a.iq*.34+G.potential*.05,7);
+        const defense=_hlCombineMetric(a.defense*.61+a.athletic*.25+a.iq*.08,7);
+        let interview=_hlCombineMetric(a.iq*.72+G.morale*.16+15,8);
+        if(p==="leader"||p==="teamfirst")interview+=5;
+        if(p==="hothead")interview-=5;
+        interview=clamp(interview,25,99);
+        const total=Math.round(sprint*.21+shooting*.25+creation*.19+defense*.22+interview*.13);
+        const bonus=clamp(Math.round((total-62)/4),-5,9);
+        G._combine={sprint,shooting,creation,defense,interview,total,bonus};
+        if(total>=82)grantTitle("combineStar");
+        if(total<55)grantTitle("combineFall");
+        render();
+      }
+      function renderNBACombine(){
+        const c=G._combine;
+        app.innerHTML=\`<div class="wrap">
+          <div class="season-hd"><span class="stage">NBA DRAFT COMBINE</span><span class="yr">\${G.year}</span></div>
+          <div class="panel">
+            <div class="label">選秀聯合測試</div>
+            <h2 style="font-size:23px;margin:8px 0">體測、投籃、對抗與面試</h2>
+            <p class="muted">NBA 球隊會把體測結果、你的實際能力、潛力、性格，以及球隊陣容需求一起放進選秀評估。體測好能拉高順位，但無法讓低能力球員保證中選。</p>
+          </div>
+          \${c?\`
+          <div class="panel">
+            <div class="statline">
+              <div class="s"><div class="v">\${c.sprint}</div><div class="l">體能</div></div>
+              <div class="s"><div class="v">\${c.shooting}</div><div class="l">投籃</div></div>
+              <div class="s"><div class="v">\${c.creation}</div><div class="l">持球</div></div>
+              <div class="s"><div class="v">\${c.defense}</div><div class="l">防守</div></div>
+            </div>
+            <div class="center" style="margin-top:10px"><div class="label">面試</div><b style="font-size:24px;color:var(--blue)">\${c.interview}</b></div>
+            <div class="center" style="margin-top:12px"><div class="label">COMBINE 總評</div><b style="font-size:36px;color:var(--gold)">\${c.total}</b><div class="small">選秀評分修正：\${c.bonus>=0?"+":""}\${c.bonus}</div></div>
+          </div>
+          <button class="btn gold" onclick="_hlFinishNBADirectDraft()">進入 NBA 選秀 🏀</button>
+          \`:\`
+          <div class="panel center">
+            <div style="font-size:42px">📋</div>
+            <p class="muted">準備好接受球探、總管與教練團的全面檢驗。</p>
+          </div>
+          <button class="btn" onclick="_hlRunCombine()">開始 Combine</button>
+          \`}
+        </div>\`;
+      }
+      function _hlAddUndraftedNext(nextOffers,league,tag,years,salary){
+        nextOffers.push({type:"draft",league,team:randTeam(league),pick:0,years,salary,tag:"❌ NBA 落選｜"+tag});
+      }
+      function _hlFinishNBADirectDraft(){
+        const fit=nbaBestTeamForPlayer();
+        const combineBonus=G._combine?G._combine.bonus:0;
+        const score=nbaDirectDraftScore(fit.fit)+combineBonus;
+        const npick=nbaPickFromScore(score);
+        G._nbaDraftScore=score;
+        G._nbaTeamFit=fit;
+        G.stage="pro"; G.proStarted=true; G.rookieDone=false; G._draftMode=true;
+
+        if(npick===null){
+          G._nbaUndrafted=true;
+          const ov=overall(),nextOffers=[];
+          if(score>=60||ov>=58)_hlAddUndraftedNext(nextOffers,"發展聯盟","🇺🇸 發展聯盟試訓｜拚 NBA Call-up",1,Math.max(ROOKIE_PAY["發展聯盟"][0],Math.round(ROOKIE_PAY["發展聯盟"][0]+Math.max(0,score-60)*4)));
+          if(ov>=48)_hlAddUndraftedNext(nextOffers,"SBL","🇹🇼 SBL 新秀合約",2,draftSalary("SBL",5,ov));
+          if(ov>=55)_hlAddUndraftedNext(nextOffers,"P+","🇹🇼 P+ 輪替培養合約",2,draftSalary("P+",6,ov));
+          if(ov>=56)_hlAddUndraftedNext(nextOffers,"TPBL","🇹🇼 TPBL 潛力新秀合約",2,draftSalary("TPBL",7,ov));
+          if(ov>=64||score>=72)_hlAddUndraftedNext(nextOffers,"KRBL","🇰🇷 韓國聯賽培養邀請",2,Math.max(ROOKIE_PAY["KRBL"][0],Math.round(ROOKIE_PAY["KRBL"][0]+ov*8)));
+          if(ov>=66||score>=74)_hlAddUndraftedNext(nextOffers,"日職 B.League","🇯🇵 日本職籃培養合約",2,Math.max(ROOKIE_PAY["日職 B.League"][0],Math.round(ROOKIE_PAY["日職 B.League"][0]+ov*9)));
+          if(ov>=68||score>=76)_hlAddUndraftedNext(nextOffers,"CBL","🇨🇳 CBL 潛力邀請",2,Math.max(ROOKIE_PAY["CBL"][0],Math.round(ROOKIE_PAY["CBL"][0]+ov*10)));
+          if(nextOffers.length===0){
+            _hlAddUndraftedNext(nextOffers,"SBL","🇹🇼 SBL 測試合約｜從底層開始",1,ROOKIE_PAY["SBL"][0]);
+            _hlAddUndraftedNext(nextOffers,"P+","🇹🇼 P+ 訓練營邀請",1,ROOKIE_PAY["P+"][0]);
+          }else if(nextOffers.length===1){
+            _hlAddUndraftedNext(nextOffers,"SBL","🇹🇼 SBL 測試合約｜增加上場機會",1,ROOKIE_PAY["SBL"][0]);
+          }
+          nextOffers.sort((a,b)=>(LEAGUE_RANK[b.league]||0)-(LEAGUE_RANK[a.league]||0));
+          G._offers=nextOffers.slice(0,6);
+        }else{
+          const rp=npick<=5?"球隊核心培養":npick<=14?"先發競爭":npick<=30?"輪替培養":"板凳競爭";
+          G._offers=[{
+            type:"draft",league:"NBA",team:fit.team,pick:npick,years:4,
+            salary:draftSalary("NBA",npick,overall()),
+            rolePromise:rp,option:"第 4 年球隊選項",guarantee:npick<=30?"前 2 年保障":"部分保障",
+            tag:"🏀 NBA 第 "+npick+" 順位｜需求："+fit.needs.join("／")+"｜契合 "+fit.fit+"｜選秀評分 "+score
+          }];
+        }
+        G.phase="draftResults";render();
+      }
+
+      function render(){
+        if(G&&G.phase==="nbaCombine")return renderNBACombine();
+        if(G&&G.phase==="careerHub")return renderCareerHub();`
+    );
+
+    // 11-4. 球隊角色、上場時間、位置競爭
+    source=source.replace(
+      /function simulateSeason\(\)\{/,
+      `function _hlCareerHash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return Math.abs(h);}
+      function _hlRoleInfo(ov){
+        if(!isPro())return {role:"學生主力",minutes:30,rival:0,stat:1,usage:1,gpPct:1};
+        const h=_hlCareerHash((G.team||"")+"|"+G.pos+"|"+G.year);
+        let rival=G.league==="NBA"?(78+h%17):clamp((LEAGUE_STANDARD[G.league]||60)-1+(h%13),52,92);
+        let eff=ov;
+        const last=lastSeason();
+        if(last&&last.stage==="pro"){
+          if((last.ppg||0)>=24)eff+=4; else if((last.ppg||0)>=18)eff+=2;
+          if((last.apg||0)>=8||(last.rpg||0)>=10)eff+=2;
+        }
+        if(G.personality==="competitor")eff+=2;
+        if(G.contract&&G.contract.rolePromise==="球隊核心")eff+=3;
+        if(G.contract&&G.contract.rolePromise==="先發競爭")eff+=1;
+
+        let role,minutes,stat,usage,gpPct;
+        if(ov>=94||eff>=rival+10){role="超級巨星";minutes=38;stat=1.12;usage=1.16;gpPct=.96;}
+        else if(ov>=89||eff>=rival+6){role="球隊核心";minutes=36;stat=1.07;usage=1.10;gpPct=.94;}
+        else if(eff>=rival+2){role="二當家";minutes=34;stat=1.02;usage=1.04;gpPct=.92;}
+        else if(eff>=rival-2){role="先發";minutes=30;stat=.92;usage=.96;gpPct=.90;}
+        else if(eff>=rival-6){role="第六人";minutes=25;stat=.78;usage=.92;gpPct=.86;}
+        else if(eff>=rival-11){role="輪替球員";minutes=18;stat=.58;usage=.82;gpPct=.78;}
+        else{role="板凳末端";minutes=9;stat=.34;usage=.70;gpPct=.62;}
+
+        if(G._rehabMinutesPenalty)minutes=Math.max(8,minutes-G._rehabMinutesPenalty);
+
+        const prev=G.role;
+        G.role=role;G.minutes=minutes;G.depthRival=rival;
+        if(prev&&prev!==role)G._roleChange=prev+" → "+role;
+        G.roleHistory=G.roleHistory||[];
+        const lastRH=G.roleHistory[G.roleHistory.length-1];
+        if(!lastRH||lastRH.year!==G.year)G.roleHistory.push({year:G.year,team:G.team,role,minutes,rival});
+
+        if(role==="第六人")grantTitle("sixthManRole");
+        if(role==="先發")grantTitle("starterRole");
+        if(role==="球隊核心")grantTitle("franchiseRole");
+        if(role==="超級巨星")grantTitle("superstarRole");
+
+        return {role,minutes,rival,stat,usage,gpPct};
+      }
+      function simulateSeason(){`
+    );
+    source=source.replace(
+      /let gp=leagueGP\(G\.league\);/,
+      `let gp=leagueGP(G.league);
+      const _hlRole=isPro()?_hlRoleInfo(ov):{role:"學生主力",minutes:30,rival:0,stat:1,usage:1,gpPct:1};
+      if(isPro()){
+        usage*=_hlRole.usage;
+        gp=Math.max(8,Math.round(gp*_hlRole.gpPct));
+      }`
+    );
+    source=source.replace(
+      /const fg=clamp\(/,
+      `if(isPro()){
+        ppg*=_hlRole.stat;rpg*=_hlRole.stat;apg*=_hlRole.stat;spg*=_hlRole.stat;bpg*=_hlRole.stat;
+      }
+      const fg=clamp(`
+    );
+    source=source.replace(
+      /grade:G\.grade,arche:archetype\(\),/,
+      `grade:G.grade,arche:archetype(),
+      role:G.role||"",minutes:G.minutes||0,depthRival:G.depthRival||0,`
+    );
+
+    // 11-5. 合約結構：保障、選項、角色承諾
+    source=source.replace(
+      /function makeContract\(league,team,years,ovForPay,cType="normal"\)\{/,
+      `function _hlRolePromiseFor(league,ov){
+        if(league==="NBA"){
+          if(ov>=91)return "球隊核心";
+          if(ov>=84)return "先發競爭";
+          if(ov>=76)return "輪替培養";
+          return "板凳競爭";
+        }
+        if(ov>=(LEAGUE_STANDARD[league]||60)+8)return "球隊核心";
+        if(ov>=(LEAGUE_STANDARD[league]||60)+2)return "先發競爭";
+        return "輪替培養";
+      }
+      function makeContract(league,team,years,ovForPay,cType="normal"){`
+    );
+    source=source.replace(
+      /return \{league,team,years,yearsLeft:years,salary,cType\};/,
+      `const rolePromise=_hlRolePromiseFor(league,ovForPay);
+      const guarantee=(cType==="max"||ovForPay>=88)?"全額保障":(league==="NBA"?"部分保障":"保障合約");
+      const option=league==="NBA"?(G.age<=25?"末年球隊選項":(ovForPay>=90?"末年球員選項":"無選項")):"無選項";
+      return {league,team,years,yearsLeft:years,salary,cType,rolePromise,guarantee,option};`
+    );
+    source=source.replace(
+      /o\.salary = makeContract\(o\.league, o\.team, o\.years, ov, o\.cType\)\.salary;/,
+      `const _cc=makeContract(o.league,o.team,o.years,ov,o.cType);
+      o.salary=_cc.salary;o.rolePromise=_cc.rolePromise;o.guarantee=_cc.guarantee;o.option=_cc.option;`
+    );
+    source=source.replace(
+      /G\.contract=\{league:offer\.league,team:offer\.team,years:offer\.years,yearsLeft:offer\.years,salary:offer\.salary\};/,
+      `G.contract={league:offer.league,team:offer.team,years:offer.years,yearsLeft:offer.years,salary:offer.salary,
+        rolePromise:offer.rolePromise||(offer.league==="NBA"?(offer.pick<=5?"球隊核心":offer.pick<=20?"先發競爭":"輪替培養"):"輪替培養"),
+        guarantee:offer.guarantee||(offer.league==="NBA"?"前 2 年保障":"保障合約"),
+        option:offer.option||(offer.league==="NBA"?"末年球隊選項":"無選項")};`
+    );
+    source=source.replace(
+      /G\.contract=\{league:offer\.league,team:offer\.team,years:offer\.years,yearsLeft:offer\.years,salary:offer\.salary,cType:offer\.cType\};/,
+      `G.contract={league:offer.league,team:offer.team,years:offer.years,yearsLeft:offer.years,salary:offer.salary,cType:offer.cType,
+        rolePromise:offer.rolePromise||_hlRolePromiseFor(offer.league,ov),
+        guarantee:offer.guarantee||"保障合約",option:offer.option||"無選項"};`
+    );
+    source=source.replace(
+      /<div class="offer-body">\$\{yrs\}\$\{money\}<\/div>/,
+      `<div class="offer-body">\${yrs}\${money}</div>
+       \${o.type==="pro"&&o.rolePromise?\`<div class="small" style="margin:6px 0;color:var(--dim)">角色承諾：<b style="color:var(--ink)">\${o.rolePromise}</b>｜\${o.guarantee||""}｜\${o.option||""}</div>\`:""}`
+    );
+
+    // 11-6. 記錄生涯薪資
+    source=source.replace(
+      /if\(isPro\(\)&&G\.contract\)\{ G\.money\+=G\.contract\.salary; \}/,
+      `if(isPro()&&G.contract){
+        G.money+=G.contract.salary;
+        G._careerSalary=(G._careerSalary||0)+G.contract.salary;
+      }`
+    );
+
+    // 11-7. 生涯管理中心 + 要求交易
+    source=source.replace(
+      /function hudHTML\(\)\{/,
+      `function openCareerHub(){
+        if(!G||!isPro()){toast("進入職業後才會開放生涯管理。");return;}
+        if(G.phase!=="careerHub")G._hubReturn=G.phase;
+        G.phase="careerHub";render();
+      }
+      function _hlCloseCareerHub(){G.phase=G._hubReturn||"training";render();}
+      function _hlRequestTrade(){
+        if(!G.contract){G._hubMessage="目前沒有有效合約。";return renderCareerHub();}
+        grantTitle("tradeDemand");
+        let p=.46;
+        if(["板凳末端","輪替球員"].includes(G.role))p+=.22;
+        if(G.morale<50)p+=.14;
+        if(G.personality==="hothead")p+=.12;
+        if(G.personality==="loyal")p-=.20;
+        if(["球隊核心","超級巨星"].includes(G.role))p-=.13;
+        if(!chance(clamp(p,.15,.92))){
+          G._hubMessage="球團拒絕交易要求，要求你先把注意力放回球場。";
+          G.morale=clamp(G.morale-4,0,100);return renderCareerHub();
+        }
+        const arr=[];
+        if(G.league==="NBA"){
+          const cand=nbaCandidateTeams().filter(x=>x.team!==G.team);
+          cand.sort((a,b)=>b.fit-a.fit);
+          cand.slice(0,3).forEach(x=>arr.push({team:x.team,fit:x.fit,need:x.needs.join("／")}));
+        }else{
+          for(let i=0;i<10&&arr.length<3;i++){
+            const t=randTeam(G.league,G.team);
+            if(t&&t!==G.team&&!arr.some(x=>x.team===t))arr.push({team:t,fit:null,need:"更多上場機會"});
+          }
+        }
+        G._tradeChoices=arr;
+        G._hubMessage="球團同意尋找交易方案。";
+        renderCareerHub();
+      }
+      function _hlAcceptTrade(i){
+        const c=(G._tradeChoices||[])[i];if(!c)return;
+        const old=G.team;G.team=c.team;
+        if(G.contract)G.contract.team=c.team;
+        G._tradeChoices=null;G._hubMessage="交易完成："+old+" → "+c.team;
+        G.morale=clamp(G.morale+2,0,100);G.role=null;G.minutes=null;
+        G._careerNews="🔀 主動交易｜"+old+" → "+c.team;
+        renderCareerHub();
+      }
+      function renderCareerHub(){
+        const c=G.contract||{};
+        const inj=(G.injuryHistory||[]).slice(-5).reverse();
+        const trades=G._tradeChoices||[];
+        const role=G.role||"尚未確立";
+        const rehab=G.rehab?(\`<div class="panel" style="border-color:var(--red)"><div class="label">復健進度</div><b>\${G.rehab.name}</b><p class="small">\${G.rehab.status||"術後復健"}｜階段 \${G.rehab.stage||0}/\${G.rehab.seasons||1}</p></div>\`):"";
+        app.innerHTML=hudHTML()+\`<div class="wrap">
+          <div class="season-hd"><span class="stage">生涯管理</span><span class="yr">\${G.year}</span></div>
+          \${G._hubMessage?\`<div class="panel" style="border-color:var(--gold)">\${G._hubMessage}</div>\`:""}
+          \${G._careerNews?\`<div class="panel"><div class="label">近期動態</div>\${G._careerNews}</div>\`:""}
+          <div class="panel">
+            <div class="label">球隊定位</div>
+            <h2 style="font-size:21px;margin:7px 0">\${role} · \${G.minutes||0} MIN</h2>
+            <p class="muted">同位置主要競爭者：約 OVR \${G.depthRival||"—"}。角色會依你的 OVR、前一季表現、性格、球隊承諾和同位置競爭重新計算。</p>
+            \${G._roleChange?\`<div class="small" style="color:var(--gold)">角色變化：\${G._roleChange}</div>\`:""}
+          </div>
+          <div class="panel">
+            <div class="label">合約</div>
+            <h3>\${c.yearsLeft||0} 年剩餘 · 年薪 \${fmtMoney(c.salary||0)}</h3>
+            <p class="small">角色承諾：\${c.rolePromise||"未承諾"}｜\${c.guarantee||"—"}｜\${c.option||"無選項"}</p>
+          </div>
+          <div class="panel">
+            <div class="label">球員性格</div>
+            <h3>\${_hlPersonalityName(G.personality)}</h3>
+          </div>
+          \${rehab}
+          <div class="panel">
+            <div class="label">近期傷病史</div>
+            \${inj.length?inj.map(x=>\`<div class="small" style="padding:5px 0;border-bottom:1px solid var(--line)">\${x.year}｜\${x.name}｜缺陣約 \${x.missGames||0} 場</div>\`).join(""):\`<div class="small">目前沒有傷病紀錄。</div>\`}
+          </div>
+          \${trades.length?\`<div class="panel"><div class="label">交易方案</div>\${trades.map((x,i)=>\`<button class="btn ghost small" style="margin-top:7px" onclick="_hlAcceptTrade(\${i})">\${x.team}\${x.fit!=null?\`｜契合 \${x.fit}｜缺 \${x.need}\`:""}</button>\`).join("")}</div>\`:""}
+          <button class="btn" onclick="_hlRequestTrade()">要求交易 🔀</button>
+          <button class="btn ghost" style="margin-top:8px" onclick="_hlCloseCareerHub()">返回</button>
+        </div>\`;
+      }
+      function hudHTML(){`
+    );
+
+    // 11-8. 生涯履歷 / 歷史地位
+    source=source.replace(
+      /function careerTotals\(\)\{/,
+      `function _hlCareerTier(){
+        const h=G.seasonHistory||[];
+        const nba=h.filter(s=>s.league==="NBA").length;
+        const peak=h.length?Math.max(...h.map(s=>s.ov||0),overall()):overall();
+        const mvp=(G.careerAwards&&G.careerAwards.MVP)||0;
+        const fmvp=(G.careerAwards&&G.careerAwards.FMVP)||0;
+        const champ=(G.careerAwards&&G.careerAwards["冠軍"])||0;
+        let pts=0;
+        h.forEach(s=>pts+=(s.ppg||0)*(s.gp||0));
+        let score=peak+(nba*1.4)+(mvp*12)+(fmvp*10)+(champ*4)+(pts/5000)*4;
+        if(score>=140)return ["籃球史傳奇",96];
+        if(score>=120)return ["歷史級巨星",88];
+        if(score>=105)return ["超級巨星",76];
+        if(score>=92)return ["全明星級",58];
+        if(score>=78)return ["優質先發",34];
+        return ["角色球員",12];
+      }
+      function _hlCareerResumeHTML(){
+        if(!G)return "";
+        const h=G.seasonHistory||[],teams=[...new Set(h.filter(s=>s.stage==="pro").map(s=>s.team))];
+        const inj=G.injuryHistory||[],tier=_hlCareerTier();
+        const draft=G.draftInfo?(G.draftInfo.league+" "+(G.draftInfo.pick?("第 "+G.draftInfo.pick+" 順位"):"落選後簽約")):"未參加／無紀錄";
+        const peak=h.length?Math.max(...h.map(s=>s.ov||0),overall()):overall();
+        return \`<div id="hl-career-resume" class="panel" style="border-color:var(--gold)">
+          <div class="label">完整生涯履歷</div>
+          <h2 style="margin:7px 0;color:var(--gold)">\${tier[0]}</h2>
+          <div class="small">名人堂評估：約 \${tier[1]}%</div>
+          <div class="small" style="margin-top:8px">選秀：\${draft}</div>
+          <div class="small">巔峰 OVR：\${peak}</div>
+          <div class="small">效力球隊：\${teams.length?teams.join(" → "):"—"}</div>
+          <div class="small">生涯薪資：約 \${fmtMoney(G._careerSalary||0)}</div>
+          <div class="small">重大傷病：\${inj.filter(x=>x.severity==="major").length} 次｜全部傷病 \${inj.length} 次</div>
+          <div class="small">最終性格：\${_hlPersonalityName(G.personality)}</div>
+        </div>\`;
+      }
+      function _hlInstallResumeObserver(){
+        const root=document.getElementById("app");if(!root)return;
+        new MutationObserver(()=>{
+          if(G&&G.phase==="end"&&!document.getElementById("hl-career-resume")){
+            const wrap=root.querySelector(".wrap");
+            if(wrap)wrap.insertAdjacentHTML("afterbegin",_hlCareerResumeHTML());
+          }
+        }).observe(root,{childList:true,subtree:true});
+      }
+      setTimeout(_hlInstallResumeObserver,0);
+
+      function careerTotals(){`
+    );
+
+
+
+    // HUD 顯示目前角色與性格
+    source=source.replace(
+      / · \$\{G\.team\}<\/div>/,
+      ` · \${G.team}\${G.stage==="pro"&&G.role?\`｜\${G.role} · \${G.minutes||0} MIN\`:""}\${G.personality?\`｜\${_hlPersonalityName(G.personality)}\`:""}</div>`
+    );
+
+    // 10) 全域模式設定
     const globals=
       "window.__TALENT_TYPE__='"+escJs(selected.id)+"';"+
       "window.__TALENT_RARITY__='"+escJs(selected.rarity)+"';"+
-      "window.__TALENT_NAME__='"+escJs(selected.name)+"';";
+      "window.__TALENT_NAME__='"+escJs(selected.name)+"';"+
+      "window.__PERSONALITY__='"+escJs(selectedPersonality)+"';"+
+      "window.__START_MODE__='"+escJs(startMode)+"';";
     source=source.replace(/<script>/i,'<script>'+globals);
 
-    // 8) 遊戲內右下角顯示目前天賦，方便確認有成功套用
+    // 11) 右下角狀態
+    const modeLabel=startMode==='nba'?'NBA挑戰':'正常生涯';
     const badge=
+      '<button onclick="openCareerHub()" style="position:fixed;right:8px;bottom:38px;z-index:99999;background:rgba(19,30,51,.94);border:1px solid #4DA3FF;border-radius:999px;padding:7px 10px;color:#F4F2EC;font:800 10px system-ui;box-shadow:0 4px 15px rgba(0,0,0,.35)">⚙️ 生涯管理</button>'+
       '<div id="chosen-talent-badge" style="position:fixed;right:8px;bottom:8px;z-index:99999;background:rgba(11,18,32,.92);border:1px solid '+selected.color+';border-radius:999px;padding:6px 9px;font:700 10px system-ui;color:'+selected.color+';box-shadow:0 4px 15px rgba(0,0,0,.35);pointer-events:none">['+
-      selected.rarity+'] '+selected.name+'</div>';
+      selected.rarity+'] '+selected.name+' · '+modeLabel+'</div>';
     source=source.replace(/<body([^>]*)>/i,'<body$1>'+badge);
 
-    // 9) 相對資源仍取自原網站
+    // 11-1) 結算畫面 V2：分聯盟 / 球員模板 / GOAT與位置排名
+    const endScreenUpgrade = `<script>
+(function(){
+  function hlClamp(v,a,b){return Math.max(a,Math.min(b,v));}
+  function hlNum(v){v=Number(v);return Number.isFinite(v)?v:0;}
+  function hlRound(v,d){const p=Math.pow(10,d||0);return Math.round(v*p)/p;}
+
+  function hlLeagueDisplay(lg){
+    const map={
+      "NBA":"NBA",
+      "發展聯盟":"NBA G League",
+      "KRBL":"韓國聯賽",
+      "日職 B.League":"日本 B.League",
+      "CBL":"中國 CBL",
+      "TPBL":"T 聯盟 / TPBL",
+      "P+":"P.LEAGUE+",
+      "SBL":"SBL",
+      "NCAA D1":"NCAA D1",
+      "NCAA D2":"NCAA D2",
+      "UBA":"UBA",
+      "高中":"高中"
+    };
+    return map[lg]||lg;
+  }
+
+  function hlLeagueOrder(){
+    return ["NBA","發展聯盟","KRBL","日職 B.League","CBL","TPBL","P+","SBL","NCAA D1","NCAA D2","UBA","高中"];
+  }
+
+  function hlPresentLeagues(){
+    const h=(G&&G.seasonHistory)||[];
+    const set=new Set(h.map(function(s){return s.league;}));
+    const arr=hlLeagueOrder().filter(function(lg){return set.has(lg);});
+    h.forEach(function(s){if(s.league&&!arr.includes(s.league))arr.push(s.league);});
+    return arr;
+  }
+
+  function hlLeagueSummary(lg){
+    const rows=((G&&G.seasonHistory)||[]).filter(function(s){return s.league===lg;});
+    const gp=rows.reduce(function(a,s){return a+hlNum(s.gp);},0);
+    const weighted=function(key){
+      if(!gp)return 0;
+      return rows.reduce(function(a,s){return a+hlNum(s[key])*hlNum(s.gp);},0)/gp;
+    };
+    const totalPts=Math.round(rows.reduce(function(a,s){return a+hlNum(s.ppg)*hlNum(s.gp);},0));
+    const teams=[];
+    rows.forEach(function(s){if(s.team&&!teams.includes(s.team))teams.push(s.team);});
+    const awards=((G&&G.awardLog)||[]).filter(function(a){return a.league===lg;});
+    const countAward=function(name){return awards.filter(function(a){return a.award===name;}).length;};
+    const peak=rows.length?Math.max.apply(null,rows.map(function(s){return hlNum(s.ov);})):0;
+    const champs=rows.filter(function(s){return !!s.champion;}).length;
+    const fmvp=rows.filter(function(s){return !!s.fmvp;}).length;
+    return {
+      league:lg,seasons:rows.length,gp:gp,totalPts:totalPts,
+      ppg:hlRound(weighted("ppg"),1),rpg:hlRound(weighted("rpg"),1),apg:hlRound(weighted("apg"),1),
+      spg:hlRound(weighted("spg"),1),bpg:hlRound(weighted("bpg"),1),
+      fg:hlRound(weighted("fg"),1),tp:hlRound(weighted("tp"),1),peak:peak,
+      champs:champs,fmvp:Math.max(fmvp,countAward("FMVP")),mvp:countAward("MVP"),
+      teams:teams
+    };
+  }
+
+  function hlLeagueTabsHTML(){
+    const leagues=hlPresentLeagues();
+    if(!leagues.length)return '<div class="small">沒有聯盟生涯紀錄。</div>';
+    if(!G._hlEndLeague||!leagues.includes(G._hlEndLeague))G._hlEndLeague=leagues[0];
+    let tabs='<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:7px;-webkit-overflow-scrolling:touch">';
+    leagues.forEach(function(lg){
+      const on=G._hlEndLeague===lg;
+      tabs+='<button data-lg="'+encodeURIComponent(lg)+'" onclick="_hlSelectEndLeague(this.dataset.lg)" style="flex:0 0 auto;border:1px solid '+(on?'var(--gold)':'var(--line)')+';background:'+(on?'rgba(242,184,75,.14)':'#0d1626')+';color:'+(on?'var(--gold)':'var(--dim)')+';padding:7px 10px;border-radius:999px;font-size:11px;font-weight:800">'+hlLeagueDisplay(lg)+'</button>';
+    });
+    tabs+='</div>';
+
+    const s=hlLeagueSummary(G._hlEndLeague);
+    const honor=[];
+    if(s.champs)honor.push('冠軍 ×'+s.champs);
+    if(s.mvp)honor.push('MVP ×'+s.mvp);
+    if(s.fmvp)honor.push('FMVP ×'+s.fmvp);
+    const details='<div style="margin-top:7px;border:1px solid var(--line);border-radius:12px;padding:11px;background:#0d1626">'
+      +'<div style="display:flex;justify-content:space-between;gap:8px"><div><div class="label">'+hlLeagueDisplay(s.league)+'</div><b style="font-size:17px">'+s.seasons+' 季 · '+s.gp+' 場</b></div><div style="text-align:right"><div class="label">巔峰 OVR</div><b style="font-family:Oswald;font-size:23px;color:var(--gold)">'+s.peak+'</b></div></div>'
+      +'<div class="statline" style="margin-top:10px">'
+      +'<div class="s"><div class="v">'+s.ppg+'</div><div class="l">PPG</div></div>'
+      +'<div class="s"><div class="v">'+s.rpg+'</div><div class="l">RPG</div></div>'
+      +'<div class="s"><div class="v">'+s.apg+'</div><div class="l">APG</div></div>'
+      +'<div class="s"><div class="v">'+s.totalPts+'</div><div class="l">總得分</div></div>'
+      +'</div>'
+      +'<div class="small">命中率 '+s.fg+'%｜三分 '+s.tp+'%｜抄截 '+s.spg+'｜阻攻 '+s.bpg+'</div>'
+      +'<div class="small" style="margin-top:5px">效力：'+(s.teams.length?s.teams.join(' → '):'—')+'</div>'
+      +(honor.length?'<div class="small" style="margin-top:5px;color:var(--gold)">'+honor.join('｜')+'</div>':'')
+      +'</div>';
+    return tabs+details;
+  }
+
+  window._hlSelectEndLeague=function(encoded){
+    G._hlEndLeague=decodeURIComponent(encoded||'');
+    const old=document.getElementById('hl-career-resume');
+    if(old)old.outerHTML=_hlCareerResumeHTML();
+  };
+
+  const HL_COMPS=[
+    {n:"Stephen Curry",p:"PG",v:[93,99,87,70,55,83,95]},
+    {n:"Magic Johnson",p:"PG",v:[84,67,99,82,84,86,98]},
+    {n:"Chris Paul",p:"PG",v:[86,82,96,89,58,76,97]},
+    {n:"Steve Nash",p:"PG",v:[88,94,97,63,54,74,96]},
+    {n:"Russell Westbrook",p:"PG",v:[84,67,88,78,82,98,82]},
+    {n:"Michael Jordan",p:"SG",v:[99,78,85,97,78,99,98]},
+    {n:"Kobe Bryant",p:"SG",v:[97,84,82,91,72,94,95]},
+    {n:"Dwyane Wade",p:"SG",v:[94,69,84,91,70,96,91]},
+    {n:"James Harden",p:"SG",v:[96,90,94,68,68,83,92]},
+    {n:"Klay Thompson",p:"SG",v:[87,97,70,92,60,79,88]},
+    {n:"LeBron James",p:"SF",v:[96,79,97,90,86,99,99]},
+    {n:"Kevin Durant",p:"SF",v:[99,94,86,80,78,90,95]},
+    {n:"Larry Bird",p:"SF",v:[96,91,93,82,88,75,99]},
+    {n:"Kawhi Leonard",p:"SF",v:[93,88,78,99,76,90,93]},
+    {n:"Julius Erving",p:"SF",v:[92,73,80,87,82,98,90]},
+    {n:"Tim Duncan",p:"PF",v:[91,63,82,98,97,86,99]},
+    {n:"Kevin Garnett",p:"PF",v:[91,72,84,99,96,94,96]},
+    {n:"Dirk Nowitzki",p:"PF",v:[98,94,77,73,83,74,97]},
+    {n:"Giannis Antetokounmpo",p:"PF",v:[94,68,88,95,96,99,92]},
+    {n:"Charles Barkley",p:"PF",v:[96,72,79,82,99,96,93]},
+    {n:"Kareem Abdul-Jabbar",p:"C",v:[99,55,78,97,98,92,99]},
+    {n:"Shaquille O'Neal",p:"C",v:[99,35,67,95,99,99,91]},
+    {n:"Hakeem Olajuwon",p:"C",v:[95,58,76,100,97,96,98]},
+    {n:"Nikola Jokic",p:"C",v:[97,86,99,81,97,74,100]},
+    {n:"Wilt Chamberlain",p:"C",v:[99,40,77,96,100,100,92]}
+  ];
+
+  function hlCareerAverages(){
+    const h=((G&&G.seasonHistory)||[]).filter(function(s){return s.stage==='pro';});
+    const gp=h.reduce(function(a,s){return a+hlNum(s.gp);},0)||1;
+    const w=function(k){return h.reduce(function(a,s){return a+hlNum(s[k])*hlNum(s.gp);},0)/gp;};
+    return {ppg:w('ppg'),rpg:w('rpg'),apg:w('apg')};
+  }
+
+  function hlPlayerComp(){
+    const a=G.attr||{};
+    const cur=[hlNum(a.shooting),hlNum(a.three),hlNum(a.pass),hlNum(a.defense),hlNum(a.rebound),hlNum(a.athletic),hlNum(a.iq)];
+    let best=null;
+    HL_COMPS.forEach(function(c){
+      let d=0;
+      for(let i=0;i<cur.length;i++)d+=Math.pow(cur[i]-c.v[i],2);
+      d=Math.sqrt(d/cur.length)+(c.p===G.pos?0:10);
+      if(!best||d<best.d)best={c:c,d:d};
+    });
+    const av=hlCareerAverages();
+    const strengths=[];
+    if(a.three>=82)strengths.push('外線牽制');
+    if(a.shooting>=84)strengths.push('自主得分');
+    if(a.pass>=82||av.apg>=7.5)strengths.push('持球組織');
+    if(a.defense>=84)strengths.push('防守影響力');
+    if(a.rebound>=84||av.rpg>=9)strengths.push('籃板控制');
+    if(a.athletic>=86)strengths.push('爆發力');
+    if(a.iq>=86)strengths.push('比賽閱讀');
+    if(!strengths.length)strengths.push('均衡球風');
+    const sim=hlClamp(Math.round(100-best.d*.85),55,98);
+    return {name:best.c.n,similarity:sim,reason:strengths.slice(0,3).join('＋')};
+  }
+
+  function hlLegacyScore(){
+    const h=((G&&G.seasonHistory)||[]).filter(function(s){return s.stage==='pro';});
+    const nba=h.filter(function(s){return s.league==='NBA';}).length;
+    const peak=h.length?Math.max.apply(null,h.map(function(s){return hlNum(s.ov);})):overall();
+    const gp=h.reduce(function(a,s){return a+hlNum(s.gp);},0);
+    const pts=h.reduce(function(a,s){return a+hlNum(s.ppg)*hlNum(s.gp);},0);
+    const avg=hlCareerAverages();
+    const c=G.careerAwards||{};
+    let score=peak*.38;
+    score+=Math.min(18,h.length)*.55;
+    score+=Math.min(18,nba)*.75;
+    score+=Math.min(15,pts/2000);
+    score+=Math.min(7,avg.ppg/5);
+    score+=Math.min(3.5,avg.apg/3);
+    score+=Math.min(3.5,avg.rpg/4);
+    score+=hlNum(c.MVP)*6.5+hlNum(c.FMVP)*5.5+hlNum(c['冠軍'])*2.4+hlNum(c.DPOY)*4.2+hlNum(c['得分王'])*1.8+hlNum(c['助攻王'])*1.6+hlNum(c['籃板王'])*1.6;
+    if(gp>=1000)score+=3;
+    if(pts>=30000)score+=5;
+    return hlClamp(hlRound(score,1),0,100);
+  }
+
+  function hlRankFromScore(score){
+    if(score>=99)return 1;
+    return Math.max(1,Math.round(1+Math.pow(Math.max(0,100-score),1.38)/1.7));
+  }
+
+  function hlPositionRank(score){
+    let adj=score;
+    const a=G.attr||{},av=hlCareerAverages();
+    if(G.pos==='PG')adj+=(hlNum(a.pass)-75)*.045+Math.max(0,av.apg-6)*.35;
+    if(G.pos==='SG')adj+=(hlNum(a.shooting)-75)*.04+Math.max(0,av.ppg-18)*.12;
+    if(G.pos==='SF')adj+=(hlNum(a.iq)+hlNum(a.athletic)-150)*.025;
+    if(G.pos==='PF')adj+=(hlNum(a.rebound)+hlNum(a.defense)-150)*.025;
+    if(G.pos==='C')adj+=(hlNum(a.rebound)+hlNum(a.defense)-150)*.03;
+    const overallRank=hlRankFromScore(hlClamp(adj,0,100));
+    return Math.max(1,Math.round(overallRank/4.6));
+  }
+
+  function hlPositionReferenceHTML(){
+    const refs={
+      PG:["Magic Johnson","Stephen Curry","Oscar Robertson","John Stockton","Chris Paul"],
+      SG:["Michael Jordan","Kobe Bryant","Dwyane Wade","James Harden","Jerry West"],
+      SF:["LeBron James","Larry Bird","Kevin Durant","Julius Erving","Kawhi Leonard"],
+      PF:["Tim Duncan","Karl Malone","Kevin Garnett","Dirk Nowitzki","Giannis Antetokounmpo"],
+      C:["Kareem Abdul-Jabbar","Bill Russell","Wilt Chamberlain","Shaquille O'Neal","Hakeem Olajuwon"]
+    };
+    let out='<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--dim);font-size:11px">查看五個位置的遊戲內名將參考榜</summary><div style="margin-top:7px">';
+    Object.keys(refs).forEach(function(p){
+      out+='<div class="small" style="padding:5px 0;border-bottom:1px solid var(--line)"><b style="color:'+(p===G.pos?'var(--gold)':'var(--ink)')+'">'+p+'</b>｜'+refs[p].join(' · ')+'</div>';
+    });
+    out+='</div><div class="small" style="margin-top:6px;color:var(--faint)">此榜為遊戲內預設名將基準，不代表現實世界官方排名。</div></details>';
+    return out;
+  }
+
+  _hlCareerResumeHTML=function(){
+    if(!G)return '';
+    const h=G.seasonHistory||[];
+    const teams=[];
+    h.filter(function(s){return s.stage==='pro';}).forEach(function(s){if(s.team&&!teams.includes(s.team))teams.push(s.team);});
+    const inj=G.injuryHistory||[];
+    const tier=_hlCareerTier();
+    const draft=G.draftInfo?(hlLeagueDisplay(G.draftInfo.league)+' '+(G.draftInfo.pick?('第 '+G.draftInfo.pick+' 順位'):'落選後簽約')):'未參加／無紀錄';
+    const peak=h.length?Math.max.apply(null,h.map(function(s){return hlNum(s.ov);})):overall();
+    const comp=hlPlayerComp();
+    const legacy=hlLegacyScore();
+    const goatRank=hlRankFromScore(legacy);
+    const posRank=hlPositionRank(legacy);
+
+    return '<div id="hl-career-resume">'
+      +'<div class="panel" style="border-color:var(--gold)">'
+      +'<div class="label">完整生涯履歷</div>'
+      +'<h2 style="margin:7px 0;color:var(--gold)">'+tier[0]+'</h2>'
+      +'<div class="small">名人堂評估：約 '+tier[1]+'%</div>'
+      +'<div class="small" style="margin-top:8px">選秀：'+draft+'</div>'
+      +'<div class="small">巔峰 OVR：'+peak+'</div>'
+      +'<div class="small">效力球隊：'+(teams.length?teams.join(' → '):'—')+'</div>'
+      +'<div class="small">生涯薪資：約 '+fmtMoney(G._careerSalary||0)+'</div>'
+      +'<div class="small">重大傷病：'+inj.filter(function(x){return x.severity==='major';}).length+' 次｜全部傷病 '+inj.length+' 次</div>'
+      +'<div class="small">最終性格：'+_hlPersonalityName(G.personality)+'</div>'
+      +'</div>'
+
+      +'<div class="panel"><div class="label">分聯盟生涯結算</div><div class="small" style="margin:4px 0 8px;color:var(--dim)">NBA、韓國、日本、T 聯盟等分開統計。</div>'+hlLeagueTabsHTML()+'</div>'
+
+      +'<div class="panel" style="border-color:#4DA3FF">'
+      +'<div class="label">球員模板比較</div>'
+      +'<h2 style="margin:7px 0">最像 '+comp.name+'</h2>'
+      +'<div class="small">球風相似度：約 '+comp.similarity+'%</div>'
+      +'<div class="small" style="margin-top:5px;color:var(--dim)">主要原因：'+comp.reason+'</div>'
+      +'</div>'
+
+      +'<div class="panel" style="border-color:var(--gold)">'
+      +'<div class="label">歷史地位 · 遊戲內模擬</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:8px">'
+      +'<div style="background:#0d1626;border:1px solid var(--line);border-radius:10px;padding:9px;text-align:center"><div class="label">GOAT 指數</div><b style="font-family:Oswald;font-size:24px;color:var(--gold)">'+legacy+'</b><div class="small">/100</div></div>'
+      +'<div style="background:#0d1626;border:1px solid var(--line);border-radius:10px;padding:9px;text-align:center"><div class="label">GOAT 總榜</div><b style="font-family:Oswald;font-size:24px">#'+goatRank+'</b><div class="small">歷史模擬</div></div>'
+      +'<div style="background:#0d1626;border:1px solid var(--line);border-radius:10px;padding:9px;text-align:center"><div class="label">'+G.pos+' 位置榜</div><b style="font-family:Oswald;font-size:24px;color:#4DA3FF">#'+posRank+'</b><div class="small">同位置</div></div>'
+      +'</div>'
+      +'<div class="small" style="margin-top:8px;color:var(--faint)">排名會綜合巔峰 OVR、職業年資、NBA 年資、總得分、場均數據、MVP、FMVP、冠軍與個人獎項；屬遊戲內模擬排名。</div>'
+      +hlPositionReferenceHTML()
+      +'</div>'
+      +'</div>';
+  };
+})();
+<\/script>`;
+    source=source.replace(/<\/body>/i,endScreenUpgrade+'\n</body>');
+
+    // 12) 相對資源
     if(!/<base[\s>]/i.test(source)){
       source=source.replace(
         /<head([^>]*)>/i,
@@ -224,6 +1397,5 @@ go.onclick=async()=>{
   }
 };
 </script>
-
 </body>
 </html>
