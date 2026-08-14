@@ -1138,11 +1138,18 @@ seasonInjuryCheck=function(){
     source=source.replace(
       /function hudHTML\(\)\{/,
       `function openCareerHub(){
-        if(!G||!isPro()){toast("進入職業後才會開放生涯管理。");return;}
+        if(!G||G.retired||G.phase==="retireScene"||G.phase==="end"){
+          toast("生涯已結束，無法再進入生涯管理。");
+          return;
+        }
+        if(!isPro()){toast("進入職業後才會開放生涯管理。");return;}
         if(G.phase!=="careerHub")G._hubReturn=G.phase;
         G.phase="careerHub";render();
       }
-      function _hlCloseCareerHub(){G.phase=G._hubReturn||"training";render();}
+      function _hlCloseCareerHub(){
+        if(G.retired){G.phase="end";render();return;}
+        G.phase=G._hubReturn||"training";render();
+      }
       function _hlRequestTrade(){
         if(!G.contract){G._hubMessage="目前沒有有效合約。";return renderCareerHub();}
         grantTitle("tradeDemand");
@@ -1290,7 +1297,7 @@ seasonInjuryCheck=function(){
     // 11) 右下角狀態
     const modeLabel=startMode==='nba'?'NBA挑戰':'正常生涯';
     const badge=
-      '<button onclick="openCareerHub()" style="position:fixed;right:8px;bottom:38px;z-index:99999;background:rgba(19,30,51,.94);border:1px solid #4DA3FF;border-radius:999px;padding:7px 10px;color:#F4F2EC;font:800 10px system-ui;box-shadow:0 4px 15px rgba(0,0,0,.35)">⚙️ 生涯管理</button>'+
+      '<button id="hl-career-hub-btn" onclick="openCareerHub()" style="position:fixed;right:8px;bottom:38px;z-index:99999;background:rgba(19,30,51,.94);border:1px solid #4DA3FF;border-radius:999px;padding:7px 10px;color:#F4F2EC;font:800 10px system-ui;box-shadow:0 4px 15px rgba(0,0,0,.35)">⚙️ 生涯管理</button>'+
       '<div id="chosen-talent-badge" style="position:fixed;right:8px;bottom:8px;z-index:99999;background:rgba(11,18,32,.92);border:1px solid '+selected.color+';border-radius:999px;padding:6px 9px;font:700 10px system-ui;color:'+selected.color+';box-shadow:0 4px 15px rgba(0,0,0,.35);pointer-events:none">['+
       selected.rarity+'] '+selected.name+' · '+modeLabel+'</div>';
     source=source.replace(/<body([^>]*)>/i,'<body$1>'+badge);
@@ -1298,6 +1305,23 @@ seasonInjuryCheck=function(){
     // 11-1) 結算畫面 V2：分聯盟 / 球員模板 / GOAT與位置排名
     const endScreenUpgrade = `<script>
 (function(){
+  function _hlSyncFloatingCareerUI(){
+    const hub=document.getElementById("hl-career-hub-btn");
+    const talent=document.getElementById("chosen-talent-badge");
+    let finished=false;
+    try{
+      finished=!!(G&&(G.retired||G.phase==="retireScene"||G.phase==="end"));
+    }catch(e){}
+    if(hub)hub.style.display=finished?"none":"";
+    if(talent)talent.style.display=finished?"none":"";
+  }
+
+  setTimeout(_hlSyncFloatingCareerUI,0);
+  new MutationObserver(_hlSyncFloatingCareerUI).observe(
+    document.documentElement,
+    {childList:true,subtree:true}
+  );
+
   function hlClamp(v,a,b){return Math.max(a,Math.min(b,v));}
   function hlNum(v){v=Number(v);return Number.isFinite(v)?v:0;}
   function hlRound(v,d){const p=Math.pow(10,d||0);return Math.round(v*p)/p;}
@@ -1566,6 +1590,229 @@ seasonInjuryCheck=function(){
         source+=endScreenUpgrade;
       }
     }
+
+    // 11-5. HBL 難度平衡：高中超級球員能真正扛隊，但仍保留爆冷
+    source=source.replace(
+      /const strength=chengchi\?0\.99:clamp\(teamStr\*\.6 \+ \(ov-55\)\*\.012 \+ \.12 \+ tb, \.2, \.97\);/,
+      `const strength=chengchi?0.99:clamp(teamStr*.6 + (ov-55)*.012 + .12 + tb, .2, .97);
+       // HBL 專屬：提高明星球員的帶隊影響力。
+       // OVR 約 70 → 有機會爆冷封王；80 → 爭冠級；90+ → 超級高中生熱門，但仍可能翻車。
+       const hsStrength = lg==="高中"
+         ? clamp(.75 + (ov-70)*.012 + (teamStr-.5)*.25 + tb*.8, .30, 1.0)
+         : strength;`
+    );
+
+    source=source.replace(
+      /const pWin=chengchi\?0\.99:clamp\(strength - deep\*\.28 \+ rnd\(-\.08,\.08\), \.06, \.96\);/,
+      `const pWin = chengchi
+         ? .99
+         : (lg==="高中"
+           ? clamp(hsStrength - deep*.10 + rnd(-.035,.035), .18, .98)
+           : clamp(strength - deep*.28 + rnd(-.08,.08), .06, .96));`
+    );
+
+    // 11-6. 中華隊國際賽 V2：亞洲盃 / 亞運 / 世界盃資格賽 / 世界盃 / 奧運資格鏈
+    source=source.replace(
+      /\/\* =========================================================================\n   威廉瓊斯盃（沉浸式賽制：分組循環 → 交叉四強 → 冠軍\/季軍戰）/,
+      `/* ===== 改造版：中華隊國際賽 V2 ===== */
+intlEventForYear=function(y){
+  const evs=[];
+  const c=y%4;
+
+  // 四年循環：世界盃資格賽 → 世界盃 → 奧運 / 亞洲盃 → 亞運
+  if(c===2){
+    evs.push({name:"世界盃資格賽",kind:"wcq",th:72,games:6,prestige:3});
+  }
+  if(c===3 && G._qualifiedWorldCup){
+    evs.push({name:"世界盃",kind:"world",th:76,games:5,prestige:5});
+  }
+  if(c===0){
+    if(G._qualifiedOlympics){
+      evs.push({name:"奧運",kind:"olympics",th:80,games:5,prestige:6});
+    }else{
+      evs.push({name:"亞洲盃",kind:"asia",th:70,games:5,prestige:3});
+    }
+  }
+  if(c===1){
+    evs.push({name:"亞運",kind:"asiangames",th:68,games:5,prestige:3});
+  }
+  return evs;
+};
+
+pendingIntl=function(){
+  const ov=overall();
+  if(ov<66)return null;
+  if(G.age<17||G.age>38)return null;
+  const evs=intlEventForYear(G.year).filter(e=>ov>=e.th);
+  if(!evs.length)return null;
+  evs.sort((a,b)=>b.prestige-a.prestige);
+  return evs[0];
+};
+
+function _hlIntlTeamRating(ev){
+  const a=G.attr,ov=overall();
+  // 中華隊不是只看玩家，但超級球星能顯著提升上限。
+  let rt=68;
+  rt+=(ov-70)*.42;
+  rt+=(a.iq-70)*.055;
+  rt+=(a.pass-70)*.035;
+  rt+=(a.defense-70)*.025;
+  rt+=(G.morale-50)*.025;
+  rt+=(G.health-70)*.018;
+
+  if(G.talentRarity==="SS")rt+=1.2;
+  if(G.talentRarity==="傳奇")rt+=2.2;
+  if(hasTitle&&hasTitle("nationalAce"))rt+=1.2;
+
+  // 台灣隊整體強度每屆仍會有波動。
+  rt+=rnd(-3.2,3.2);
+  return clamp(rt,55,92);
+}
+
+function _hlIntlPlayerLine(ev){
+  const a=G.attr,ov=overall(),m=posMult();
+  const usage=clamp(.62+(ov-72)*.018,.42,1.22);
+  const diff={asia:1.05,asiangames:1.02,wcq:1.12,world:1.28,olympics:1.40}[ev.kind]||1.12;
+  const ppg=clamp(((a.shooting*.50+a.three*.31+a.athletic*.19)/diff)*.44*usage*rnd(.88,1.12),2,36);
+  const rpg=clamp(((a.rebound*.70+a.athletic*.24)/diff)*.12*m.reb*rnd(.88,1.12),.5,15);
+  const apg=clamp(((a.pass*.70+a.iq*.30)/diff)*.098*m.ast*rnd(.88,1.12),.4,13);
+  return {ppg:round(ppg),rpg:round(rpg),apg:round(apg)};
+}
+
+function _hlIntlKnockout(ev,teamRating){
+  const diffMap={
+    asia:[66,72,77,81],
+    asiangames:[64,70,76,80],
+    world:[76,82,88,92],
+    olympics:[82,88,93,96]
+  };
+  const ds=diffMap[ev.kind]||[70,76,82,86];
+
+  // 小組賽：三場中至少贏兩場，或一勝後靠淨勝分晉級。
+  let gw=0;
+  for(let i=0;i<3;i++){
+    const opp=ds[0]+rnd(-4,4);
+    const p=clamp(.50+(teamRating-opp)/28+rnd(-.045,.045),.08,.92);
+    if(chance(p))gw++;
+  }
+  const groupAdv = gw>=2 || (gw===1 && chance(clamp(.22+(teamRating-ds[0])*.025,.08,.55)));
+  if(!groupAdv)return {place:"小組賽止步",placeNum:12,advanced:false,medal:false,gold:false};
+
+  const qf=chance(clamp(.50+(teamRating-ds[1])/26+rnd(-.05,.05),.07,.93));
+  if(!qf)return {place:"八強",placeNum:8,advanced:true,medal:false,gold:false};
+
+  const sf=chance(clamp(.50+(teamRating-ds[2])/25+rnd(-.05,.05),.06,.92));
+  if(!sf){
+    const bronze=chance(clamp(.50+(teamRating-(ds[2]-1))/25+rnd(-.05,.05),.07,.90));
+    return bronze
+      ? {place:"🥉 季軍",placeNum:3,advanced:true,medal:true,gold:false}
+      : {place:"第 4 名",placeNum:4,advanced:true,medal:false,gold:false};
+  }
+
+  const fin=chance(clamp(.50+(teamRating-ds[3])/24+rnd(-.045,.045),.05,.90));
+  return fin
+    ? {place:"🥇 冠軍",placeNum:1,advanced:true,medal:true,gold:true}
+    : {place:"🥈 亞軍",placeNum:2,advanced:true,medal:true,gold:false};
+}
+
+simulateIntl=function(ev){
+  const line=_hlIntlPlayerLine(ev);
+  const teamRating=_hlIntlTeamRating(ev);
+  const perf=line.ppg+line.rpg*1.1+line.apg*1.4+(overall()-70)*.25;
+  let result;
+
+  if(ev.kind==="wcq"){
+    // 世界盃資格賽：台灣隊整體＋你的戰力共同決定能不能出線。
+    const q=clamp(.24+(teamRating-68)*.035+(overall()-75)*.008,.08,.82);
+    const qualified=chance(q);
+    G._qualifiedWorldCup=qualified;
+    result={
+      place:qualified?"✅ 晉級世界盃":"❌ 世界盃資格賽出局",
+      placeNum:qualified?8:20,
+      advanced:qualified,medal:false,gold:false
+    };
+  }else{
+    result=_hlIntlKnockout(ev,teamRating);
+
+    if(ev.kind==="world"){
+      // 世界盃是奧運主要資格來源；成績越深，取得奧運門票機率越高。
+      let oq=false;
+      if(result.placeNum<=4)oq=true;
+      else if(result.placeNum<=8)oq=chance(clamp(.28+(teamRating-76)*.025,.18,.60));
+      G._qualifiedOlympics=oq;
+      G._qualifiedWorldCup=false;
+    }
+    if(ev.kind==="olympics"){
+      // 奧運資格用完，下個週期必須重新取得。
+      G._qualifiedOlympics=false;
+    }
+  }
+
+  const medal=!!result.medal;
+  const mvp=medal&&perf>=29&&chance(result.gold?.48:.25);
+
+  if(medal){
+    G.intlMedals++;
+    const award=result.place.includes("冠")?"金牌":result.place.includes("亞")?"銀牌":"銅牌";
+    logAward("中華隊",ev.name+award,G.year);
+    grantTitle("twhero");
+  }
+
+  if(ev.kind==="asia" && result.gold)grantTitle("asiaKing");
+  if(ev.kind==="world" && result.placeNum<=8)grantTitle("worldCupEight");
+  if(ev.kind==="olympics")grantTitle("olympian");
+  if(ev.kind==="olympics" && medal)grantTitle("olympicMedal");
+  if(mvp)logAward("中華隊",ev.name+" MVP",G.year);
+
+  // 國際賽疲勞 / 傷病風險，世界級賽事稍高。
+  let injuryNote="";
+  const baseInj=ev.kind==="olympics"?.09:ev.kind==="world"?.08:ev.kind==="wcq"?.06:.05;
+  const pInj=clamp(baseInj+Math.max(0,G.age-30)*.008,.04,.24);
+  if(chance(pInj)){
+    const severe=chance(clamp(.07+Math.max(0,G.age-31)*.018,.04,.28));
+    if(severe){
+      G.health=clamp(G.health-rnd(16,30),5,100);
+      G.attr.athletic=clamp(G.attr.athletic-rint(1,3),15,99);
+      injuryNote="國際賽期間出現較嚴重傷勢，返隊後需要復健。";
+      G._recovering=true;
+    }else{
+      G.health=clamp(G.health-rnd(6,15),15,100);
+      injuryNote="國際賽期間受到輕傷與疲勞影響。";
+    }
+  }else{
+    G.health=clamp(G.health-rnd(2,7),0,100);
+  }
+
+  // 國家隊王牌 / 傳奇標籤
+  if((line.ppg>=18 || line.apg>=7) && overall()>=82)grantTitle("nationalAce");
+  if((G.intlMedals||0)>=3 || (ev.kind==="olympics"&&medal))grantTitle("nationalLegend");
+
+  const rec={
+    year:G.year,event:ev.name,ppg:line.ppg,rpg:line.rpg,apg:line.apg,
+    medal:medal?result.place.replace(/^[^\\s]+\\s/,""):"",
+    place:result.place,advanced:result.advanced,mvp,age:G.age,injuryNote,
+    teamRating:Math.round(teamRating)
+  };
+  G.intlHistory.push(rec);
+  G.fame=clamp(G.fame+(result.placeNum<=4?ev.prestige*3:result.advanced?ev.prestige:1)+(mvp?5:0),0,100);
+  return rec;
+};
+
+/* =========================================================================
+   威廉瓊斯盃（沉浸式賽制：分組循環 → 交叉四強 → 冠軍/季軍戰）`
+    );
+
+    // 國際賽專屬稱號
+    source=source.replace(
+      /const TITLE_DEFS=\{/,
+      `const TITLE_DEFS={
+        nationalAce:{name:"中華隊王牌",good:true,cssClass:"legend-blue",desc:"在國際賽成為中華隊主力核心",effect:"球商 +1、士氣 +3",buff:{iq:1,morale:3}},
+        asiaKing:{name:"亞洲之王",good:true,cssClass:"legend-yellow",desc:"率領中華隊拿下亞洲盃冠軍",effect:"名氣 +8、球商 +2",buff:{fame:8,iq:2}},
+        worldCupEight:{name:"世界八強",good:true,cssClass:"legend-blue",desc:"率領中華隊闖進世界盃八強",effect:"名氣 +10",buff:{fame:10}},
+        olympian:{name:"奧運國手",good:true,cssClass:"legend-purple",desc:"代表中華隊站上奧運籃球舞台",effect:"名氣 +8",buff:{fame:8}},
+        olympicMedal:{name:"奧運獎牌英雄",good:true,cssClass:"legend-yellow",desc:"代表中華隊奪得奧運籃球獎牌",effect:"名氣 +15、球商 +2、士氣 +8",buff:{fame:15,iq:2,morale:8}},
+        nationalLegend:{name:"國家隊傳奇",good:true,cssClass:"legend-yellow",desc:"長期為中華隊在國際舞台寫下傳奇",effect:"名氣 +10、球商 +2",buff:{fame:10,iq:2}},`
+    );
 
     // 12) 相對資源
     if(!/<base[\s>]/i.test(source)){
