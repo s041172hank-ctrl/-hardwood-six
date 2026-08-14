@@ -1377,7 +1377,15 @@ seasonInjuryCheck=function(){
   };
 })();
 <\/script>`;
-    source=source.replace(/<\/body>/i,endScreenUpgrade+'\n</body>');
+    // 一定插在真正的最後一個 </body> 前面，避免誤插進遊戲內產生分享頁面的 HTML 字串
+    {
+      const bodyPos=source.toLowerCase().lastIndexOf('</body>');
+      if(bodyPos>=0){
+        source=source.slice(0,bodyPos)+endScreenUpgrade+'\n'+source.slice(bodyPos);
+      }else{
+        source+=endScreenUpgrade;
+      }
+    }
 
     // 12) 相對資源
     if(!/<base[\s>]/i.test(source)){
