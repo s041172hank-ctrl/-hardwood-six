@@ -1885,6 +1885,14 @@ simulateIntl=function(ev){
       else source+=mobileScrollFixV942;
     }
 
+    // 11-14. V9.4.3：主畫面移除核心輪換面板
+    const hideDepthChartV943="<script>\n(function(){\n\"use strict\";\n/* Hardwood Life V9.4.3\n   主畫面移除 TEAM DEPTH CHART / 核心輪換\n   完整球員名單仍保留在「聯盟中心」\n*/\n\nfunction hlV943HideDepthChart(){\n  try{\n    const panel=document.getElementById(\"v9-pre-roster\");\n    if(panel){\n      panel.style.display=\"none\";\n      panel.style.height=\"0\";\n      panel.style.margin=\"0\";\n      panel.style.padding=\"0\";\n      panel.style.border=\"0\";\n      panel.style.overflow=\"hidden\";\n    }\n\n    // 額外保險：如果 id 因舊版變化沒套到，找 TEAM DEPTH CHART 標題所在的整塊面板\n    document.querySelectorAll(\".panel\").forEach(function(p){\n      const txt=(p.textContent||\"\");\n      if(txt.includes(\"TEAM DEPTH CHART\") && txt.includes(\"核心輪換\")){\n        p.style.display=\"none\";\n        p.style.height=\"0\";\n        p.style.margin=\"0\";\n        p.style.padding=\"0\";\n        p.style.border=\"0\";\n        p.style.overflow=\"hidden\";\n      }\n    });\n  }catch(e){}\n}\n\nwindow.__hlV943HideDepthChart=hlV943HideDepthChart;\n\nsetTimeout(hlV943HideDepthChart,0);\nsetTimeout(hlV943HideDepthChart,250);\nsetTimeout(hlV943HideDepthChart,800);\n\nnew MutationObserver(function(){\n  setTimeout(hlV943HideDepthChart,0);\n}).observe(document.documentElement,{childList:true,subtree:true});\n\n})();\n<\\/script>";
+    {
+      const pos=source.toLowerCase().lastIndexOf('</body>');
+      if(pos>=0)source=source.slice(0,pos)+hideDepthChartV943+'\\n'+source.slice(pos);
+      else source+=hideDepthChartV943;
+    }
+
     // 12) 相對資源
     if(!/<base[\s>]/i.test(source)){
       source=source.replace(
